@@ -16,12 +16,16 @@ namespace Codist.Controls
 		public static readonly DependencyProperty ItemsControlMaxHeightProperty = DependencyProperty.Register("ItemsControlMaxHeight", typeof(double), typeof(VirtualList));
 
 		public VirtualList() {
+			#region enable virtualization by default
 			SetValue(VirtualizingPanel.IsVirtualizingProperty, true);
 			SetValue(VirtualizingPanel.VirtualizationModeProperty, VirtualizationMode.Recycling);
+			ScrollViewer.SetCanContentScroll(this, true);
+			#endregion
+
 			ItemsControlMaxHeight = 500;
 			HorizontalContentAlignment = HorizontalAlignment.Stretch;
 			Resources = SharedDictionaryManager.VirtualList;
-this.ReferenceCrispImageBackground(EnvironmentColors.MainWindowActiveCaptionColorKey);
+			this.ReferenceCrispImageBackground(EnvironmentColors.MainWindowActiveCaptionColorKey);
 		}
 
 		public UIElement Header {
@@ -110,17 +114,14 @@ this.ReferenceCrispImageBackground(EnvironmentColors.MainWindowActiveCaptionColo
 
 		protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) {
 			base.OnRenderSizeChanged(sizeInfo);
-			if (sizeInfo.WidthChanged) {
-				//Canvas.SetLeft(this, left < 0 ? 0 : left);
-				if (Container != null) {
-					var left = Canvas.GetLeft(this);
-					var top = Canvas.GetTop(this);
-					if (top + sizeInfo.NewSize.Height > Container.RenderSize.Height) {
-						Canvas.SetTop(this, Container.RenderSize.Height - sizeInfo.NewSize.Height);
-					}
-					if (left + sizeInfo.NewSize.Width > Container.RenderSize.Width) {
-						Canvas.SetLeft(this, Container.ActualWidth - sizeInfo.NewSize.Width);
-					}
+			if (Container != null && sizeInfo.WidthChanged) {
+				var left = Canvas.GetLeft(this);
+				var top = Canvas.GetTop(this);
+				if (top + sizeInfo.NewSize.Height > Container.RenderSize.Height) {
+					Canvas.SetTop(this, Container.RenderSize.Height - sizeInfo.NewSize.Height);
+				}
+				if (left + sizeInfo.NewSize.Width > Container.RenderSize.Width) {
+					Canvas.SetLeft(this, Container.ActualWidth - sizeInfo.NewSize.Width);
 				}
 			}
 		}
@@ -137,7 +138,7 @@ this.ReferenceCrispImageBackground(EnvironmentColors.MainWindowActiveCaptionColo
 		}
 	}
 
-	abstract class ListItem /*: INotifyPropertyChanged*/
+	abstract class ListItem
 	{
 		UIElement _Icon;
 

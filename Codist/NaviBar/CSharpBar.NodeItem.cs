@@ -149,9 +149,6 @@ public sealed partial class CSharpBar
 				.ReferenceProperty(TextBlock.ForegroundProperty, EnvironmentColors.SystemGrayTextBrushKey);
 			Bar.SetupSymbolListMenu(_Menu);
 			await AddItemsAsync(Node, cancellationToken);
-			if (_Menu.Symbols.Count > 100) {
-				_Menu.EnableVirtualMode = true;
-			}
 		}
 
 		async Task RefreshItemsAsync(CancellationToken cancellationToken) {
