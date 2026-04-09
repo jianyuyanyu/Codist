@@ -146,4 +146,17 @@ namespace Codist.Margins
 				: null;
 		}
 	}
+
+	[Export(typeof(IWpfTextViewMarginProvider))]
+	[Name(FolderMargin.Name)]
+	[Order(After = PredefinedMarginNames.ZoomControl)]
+	[MarginContainer(PredefinedMarginNames.BottomControl)]
+	[ContentType(Constants.CodeTypes.Text)]
+	[TextViewRole(PredefinedTextViewRoles.Document)]
+	internal sealed class CustomMarginProvider : IWpfTextViewMarginProvider
+	{
+		public IWpfTextViewMargin CreateMargin(IWpfTextViewHost wpfTextViewHost, IWpfTextViewMargin marginContainer) {
+			return new FolderMargin(wpfTextViewHost.TextView);
+		}
+	}
 }

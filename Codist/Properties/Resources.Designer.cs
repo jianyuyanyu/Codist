@@ -921,6 +921,15 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Go to folder.
+        /// </summary>
+        internal static string CMD_GoToFolder {
+            get {
+                return ResourceManager.GetString("CMD_GoToFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Go to Member.
         /// </summary>
         internal static string CMD_GotoMember {
@@ -2394,6 +2403,16 @@ namespace Codist.Properties {
         internal static string CMDT_Capitalize {
             get {
                 return ResourceManager.GetString("CMDT_Capitalize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Folder viewer
+        ///Click to view folder containing current file.
+        /// </summary>
+        internal static string CMDT_ClickToViewFolder {
+            get {
+                return ResourceManager.GetString("CMDT_ClickToViewFolder", resourceCulture);
             }
         }
         
@@ -6914,6 +6933,15 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Create: .
+        /// </summary>
+        internal static string T_CreateTime {
+            get {
+                return ResourceManager.GetString("T_CreateTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Custom.
         /// </summary>
         internal static string T_Custom {
@@ -7173,6 +7201,15 @@ namespace Codist.Properties {
         internal static string T_ElementCount {
             get {
                 return ResourceManager.GetString("T_ElementCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Empty folder: .
+        /// </summary>
+        internal static string T_EmptyFolder {
+            get {
+                return ResourceManager.GetString("T_EmptyFolder", resourceCulture);
             }
         }
         
@@ -7520,6 +7557,15 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to open folder.
+        /// </summary>
+        internal static string T_FailedToOpenFolder {
+            get {
+                return ResourceManager.GetString("T_FailedToOpenFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed to open output folder.
         /// </summary>
         internal static string T_FailedToOpenOutputFolder {
@@ -7574,11 +7620,29 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to File: .
+        /// </summary>
+        internal static string T_File {
+            get {
+                return ResourceManager.GetString("T_File", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to FilePath.
         /// </summary>
         internal static string T_FilePath {
             get {
                 return ResourceManager.GetString("T_FilePath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Size: .
+        /// </summary>
+        internal static string T_FileSize {
+            get {
+                return ResourceManager.GetString("T_FileSize", resourceCulture);
             }
         }
         
@@ -9146,11 +9210,29 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unauthorized folder: .
+        /// </summary>
+        internal static string T_UnauthorizedFolder {
+            get {
+                return ResourceManager.GetString("T_UnauthorizedFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Update Placeholder Text.
         /// </summary>
         internal static string T_UpdatePlaceholderText {
             get {
                 return ResourceManager.GetString("T_UpdatePlaceholderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update: .
+        /// </summary>
+        internal static string T_UpdateTime {
+            get {
+                return ResourceManager.GetString("T_UpdateTime", resourceCulture);
             }
         }
         

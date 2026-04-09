@@ -3178,4 +3178,32 @@ Shift: 匹配大小写</value>
   <data name="OT_WrapTextTip" xml:space="preserve">
     <value>提供以各种文本内容环绕选定文本的功能</value>
   </data>
+  <data name="T_FailedToOpenFolder" xml:space="preserve">
+    <value>无法打开文件夹</value>
+  </data>
+  <data name="T_File" xml:space="preserve">
+    <value>文件: </value>
+  </data>
+  <data name="T_FileSize" xml:space="preserve">
+    <value>大小: </value>
+  </data>
+  <data name="T_CreateTime" xml:space="preserve">
+    <value>创建时间: </value>
+  </data>
+  <data name="T_UpdateTime" xml:space="preserve">
+    <value>更改时间: </value>
+  </data>
+  <data name="CMDT_ClickToViewFolder" xml:space="preserve">
+    <value>文件夹查看器
+点击查看文件所在文件夹的内容</value>
+  </data>
+  <data name="CMD_GoToFolder" xml:space="preserve">
+    <value>转到文件夹</value>
+  </data>
+  <data name="T_EmptyFolder" xml:space="preserve">
+    <value>空文件夹: </value>
+  </data>
+  <data name="T_UnauthorizedFolder" xml:space="preserve">
+    <value>无访问权限文件夹: </value>
+  </data>
 </root>

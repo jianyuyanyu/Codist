@@ -3191,4 +3191,32 @@ Only search in current namespace</value>
   <data name="OT_WrapTextTip" xml:space="preserve">
     <value>Provides command to wrap selected text with various text content</value>
   </data>
+  <data name="T_FailedToOpenFolder" xml:space="preserve">
+    <value>Failed to open folder</value>
+  </data>
+  <data name="T_File" xml:space="preserve">
+    <value>File: </value>
+  </data>
+  <data name="T_FileSize" xml:space="preserve">
+    <value>Size: </value>
+  </data>
+  <data name="T_CreateTime" xml:space="preserve">
+    <value>Create: </value>
+  </data>
+  <data name="T_UpdateTime" xml:space="preserve">
+    <value>Update: </value>
+  </data>
+  <data name="CMDT_ClickToViewFolder" xml:space="preserve">
+    <value>Folder viewer
+Click to view folder containing current file</value>
+  </data>
+  <data name="CMD_GoToFolder" xml:space="preserve">
+    <value>Go to folder</value>
+  </data>
+  <data name="T_EmptyFolder" xml:space="preserve">
+    <value>Empty folder: </value>
+  </data>
+  <data name="T_UnauthorizedFolder" xml:space="preserve">
+    <value>Unauthorized folder: </value>
+  </data>
 </root>

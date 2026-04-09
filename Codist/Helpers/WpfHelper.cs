@@ -41,6 +41,9 @@ static partial class WpfHelper
 	internal static readonly Thickness MiddleBottomMargin = new(0, 0, 0, 6);
 	internal static readonly Thickness TinyBottomMargin = new(0, 0, 0, 1);
 	internal static readonly Thickness MenuItemMargin = new(6, 0, 6, 0);
+	internal static readonly CornerRadius TinyCorner = new(1);
+	internal static readonly CornerRadius SmallCorner = new(3);
+	internal static readonly CornerRadius MiddleCorner = new(6);
 
 	#region TextBlock and Run
 	public static TextBlock SetGlyph(this TextBlock block, int iconId) {
@@ -815,6 +818,24 @@ static partial class WpfHelper
 	}
 	public static TObject SetLazyToolTip<TObject>(this TObject item, Func<TObject, object> toolTipProvider)
 		where TObject : FrameworkElement {
+		item.ToolTip = __DummyToolTip;
+		item.ToolTipOpening += ShowLazyToolTip;
+		return item;
+
+		void ShowLazyToolTip(object sender, ToolTipEventArgs args) {
+			var s = args.Source as TObject;
+			var v = toolTipProvider(s);
+			if (v is string t) {
+				v = new TextBlock {
+					Text = t
+				}.LimitSize();
+			}
+			s.ToolTip = v;
+			s.ToolTipOpening -= ShowLazyToolTip;
+		}
+	}
+	public static TObject SetContentLazyToolTip<TObject>(this TObject item, Func<TObject, object> toolTipProvider)
+		where TObject : FrameworkContentElement {
 		item.ToolTip = __DummyToolTip;
 		item.ToolTipOpening += ShowLazyToolTip;
 		return item;
