@@ -193,6 +193,10 @@ namespace Codist.Controls
 			}
 		}
 
+		public void SetText(string text) {
+			(Text ??= new TextBlock()).Text = text;
+		}
+
 		public void Dispose() {
 			if (Content is StackPanel p) {
 				p.Children.DisposeCollection();
