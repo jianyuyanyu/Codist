@@ -261,7 +261,7 @@ partial class SmartBar
 
 	void AddPasteCommand() {
 		if (Clipboard.ContainsText()) {
-			AddCommand(ToolBar, IconIds.Paste, R.CMD_Paste, ctx => ExecuteAndFind(ctx, "Edit.Paste", ctx.View.GetFirstSelectionText(), true));
+			AddCommand(ToolBar, IconIds.Paste, R.CMD_PasteText, ctx => ExecuteAndFind(ctx, "Edit.Paste", ctx.View.GetFirstSelectionText(), true));
 		}
 	}
 

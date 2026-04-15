@@ -530,10 +530,10 @@ static class TextEditorHelper
 	public static void ForgetViewPosition() {
 		__ActiveViewPosition = -1;
 	}
-	public static void OpenFile(string file) {
-		OpenFile(file, (VsTextView _) => { });
+	public static void OpenFile(string file, bool newWindow = false) {
+		OpenFile(file, (VsTextView _) => { }, newWindow);
 	}
-	public static void OpenFile(string file, Action<VsTextView> action) {
+	public static void OpenFile(string file, Action<VsTextView> action, bool newWindow = false) {
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (String.IsNullOrEmpty(file)) {
 			return;
@@ -546,13 +546,13 @@ static class TextEditorHelper
 			MoveCaretToKeptViewPosition();
 		}
 
-		InternalOpenFile(file, action);
+		InternalOpenFile(file, action, newWindow);
 	}
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	static void InternalOpenFile(string file, Action<VsTextView> action) {
+	static void InternalOpenFile(string file, Action<VsTextView> action, bool newWindow = false) {
 		try {
-			using (new NewDocumentStateScope(UIHelper.IsShiftDown ? __VSNEWDOCUMENTSTATE.NDS_Unspecified : __VSNEWDOCUMENTSTATE.NDS_Provisional, Microsoft.VisualStudio.VSConstants.NewDocumentStateReason.Navigation)) {
+			using (new NewDocumentStateScope(newWindow ^ UIHelper.IsShiftDown ? __VSNEWDOCUMENTSTATE.NDS_Unspecified : __VSNEWDOCUMENTSTATE.NDS_Provisional, Microsoft.VisualStudio.VSConstants.NewDocumentStateReason.Navigation)) {
 				VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, file, __ViewKindCodeGuid, out var hierarchy, out var itemId, out var windowFrame, out var view);
 				action?.Invoke(view);
 			}

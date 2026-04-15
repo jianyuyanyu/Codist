@@ -100,12 +100,15 @@
     <Compile Include="Controls\ThemedRichTextBox.cs" />
     <Compile Include="Controls\ThemedHyperlink.cs" />
     <Compile Include="Commands\CancelRepeatingActionCommand.cs" />
+    <Compile Include="FileList\FileItemType.cs" />
+    <Compile Include="FileList\FileSystemItem.cs" />
     <Compile Include="Helpers\ClassificationStyleHelper.cs" />
     <Compile Include="Helpers\EditCommands.cs" />
     <Compile Include="Helpers\SpanHelper.cs" />
     <Compile Include="Helpers\ValueHelper.cs" />
     <Compile Include="Helpers\VsImageHelper.cs" />
     <Compile Include="Helpers\ThemeHelper.cs" />
+    <Compile Include="FileList\FileListControl.cs" />
     <Compile Include="Margins\FolderMargin.cs" />
     <Compile Include="Margins\MatchMargin.cs" />
     <Compile Include="Options\OptionsWindow.cs" />

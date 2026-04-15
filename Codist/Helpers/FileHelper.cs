@@ -7,13 +7,15 @@ namespace Codist
 {
 	static class FileHelper
 	{
-		public static (string folder, string file) DeconstructPath(string path) {
+		public static (string folder, string file) DeconstructPath(string path, bool removeTrailingDirSeparator = false) {
 			if (path == null) {
 				return default;
 			}
 			try {
 				var folder = Path.GetDirectoryName(path);
-				if (folder.Length > 0 && folder[folder.Length - 1] != Path.DirectorySeparatorChar) {
+				if (!removeTrailingDirSeparator
+					&& folder.Length > 0
+					&& folder[folder.Length - 1] != Path.DirectorySeparatorChar) {
 					folder += Path.DirectorySeparatorChar;
 				}
 				var file = Path.GetFileName(path);
@@ -42,6 +44,10 @@ namespace Codist
 		public static void OpenInExplorer(string path) {
 			var (folder, _) = DeconstructPath(path);
 			OpenPathInExplorer(folder, path);
+		}
+
+		public static void OpenFolderInExplorer(string folderPath) {
+			OpenPathInExplorer(folderPath, null);
 		}
 
 		public static void OpenInExplorer(string folder, string file) {

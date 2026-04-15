@@ -48,6 +48,7 @@ namespace Codist;
 		public static CodistPackage Instance { get; private set; }
 		public static Version VsVersion => Vs.Version;
 		public static EnvDTE80.DTE2 DTE { get; } = GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
+	public static IntPtr WindowHandle { get; private set; }
 
 		public static OleMenuCommandService MenuService {
 			get {
@@ -123,6 +124,7 @@ namespace Codist;
 			if (config.DisplayOptimizations != DisplayOptimizations.None) {
 				Display.ResourceMonitor.Reload(config.DisplayOptimizations);
 			}
+		WindowHandle = ReflectionHelper.CreateGetPropertyMethod<Window, IntPtr>("CriticalHandle")(Application.Current.MainWindow);
 			//await Commands.FavoritesWindowCommand.InitializeAsync(this);
 
 			if (config.InitStatus != InitStatus.Normal) {

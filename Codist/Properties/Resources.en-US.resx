@@ -310,7 +310,7 @@ Hint: To create a new GUID, type 'guid' (without quotes) and select it</value>
     <value>Mark...
 Mark symbol, breakpoint or bookmark</value>
   </data>
-  <data name="CMD_Paste" xml:space="preserve">
+  <data name="CMD_PasteText" xml:space="preserve">
     <value>Paste text from clipboard
 Right click: Paste over line
 Ctrl: Paste and select next
@@ -1368,7 +1368,7 @@ Ctrl+1, Ctrl+3: Codist.SearchProjectDeclaration</value>
     <value>Open or execute file</value>
   </data>
   <data name="CMD_OpenWithVS" xml:space="preserve">
-    <value>Open file with Visual Studio</value>
+    <value>Open File with Visual Studio</value>
   </data>
   <data name="T_ContainingAssembly" xml:space="preserve">
     <value>Containing assembly: </value>
@@ -3218,5 +3218,47 @@ Click to view folder containing current file</value>
   </data>
   <data name="T_UnauthorizedFolder" xml:space="preserve">
     <value>Unauthorized folder: </value>
+  </data>
+  <data name="CMD_Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="CMD_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="CMD_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="CMD_Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="CMD_CopyFileName" xml:space="preserve">
+    <value>Copy File Name</value>
+  </data>
+  <data name="CMD_Rename" xml:space="preserve">
+    <value>Rename...</value>
+  </data>
+  <data name="CMD_Properties" xml:space="preserve">
+    <value>Properties...</value>
+  </data>
+  <data name="T_FailedToRename" xml:space="preserve">
+    <value>Rename operation failed</value>
+  </data>
+  <data name="T_InvalidFileName" xml:space="preserve">
+    <value>Invalid file name</value>
+  </data>
+  <data name="CMD_BackToCurrentFile" xml:space="preserve">
+    <value>Back to current file</value>
+  </data>
+  <data name="CMD_GoToSolutionFolder" xml:space="preserve">
+    <value>Go to Solution Folder</value>
+  </data>
+  <data name="CMD_LocateInSolutionExplorer" xml:space="preserve">
+    <value>Locate in Solution Explorer</value>
+  </data>
+  <data name="CMD_GoToProjectFolder" xml:space="preserve">
+    <value>Go to Project Folder</value>
+  </data>
+  <data name="T_ErrorInexistentDirectory" xml:space="preserve">
+    <value>Directory does not exist:</value>
   </data>
 </root>

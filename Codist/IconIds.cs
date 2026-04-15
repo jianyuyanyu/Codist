@@ -160,6 +160,7 @@ static class IconIds
 	public const int Comment = KnownImageIds.CommentCode;
 	public const int Uncomment = KnownImageIds.UncommentCode;
 	public const int Rename = KnownImageIds.Rename;
+	public const int Properties = KnownImageIds.Property;
 	public const int Refactoring = KnownImageIds.Refactoring;
 	public const int ReorderParameters = KnownImageIds.ReorderParameters;
 	public const int ExtractInterface = KnownImageIds.ExtractInterface;
@@ -228,6 +229,7 @@ static class IconIds
 	public const int InaccessibleFolder = KnownImageIds.FolderWarning;
 	public const int OpenFolder = KnownImageIds.OpenFolder;
 	public const int OpenWithVisualStudio = KnownImageIds.VisualStudio;
+	public const int LocateInSolutionExplorer = KnownImageIds.SwitchSourceOrTarget;
 	public const int OpenWithCmd = KnownImageIds.Console;
 	public const int Load = KnownImageIds.FolderOpened;
 	public const int SaveAs = KnownImageIds.SaveAs;
@@ -286,6 +288,9 @@ static class IconIds
 	public const int GoToMember = KnownImageIds.Next;
 	public const int GoToSymbol = KnownImageIds.FindSymbol;
 	public const int GoToDeclaration = KnownImageIds.GoToDeclaration;
+	public const int GoToCurrentFile = KnownImageIds.GenerateFile;
+	public const int GoToSolutionFolder = KnownImageIds.Solution;
+	public const int GoToProjectFolder = KnownImageIds.Library;
 	public const int Capitalize = KnownImageIds.Font;
 	public const int Uppercase = KnownImageIds.IncreaseFontSize;
 	public const int Lowercase = KnownImageIds.DecreaseFontSize;
