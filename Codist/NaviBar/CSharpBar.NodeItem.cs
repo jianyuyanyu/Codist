@@ -159,6 +159,9 @@ public sealed partial class CSharpBar
 				_Menu.ClearSymbols();
 				_Symbol = null;
 				Node = await ctx.RelocateDeclarationNodeAsync(Node, cancellationToken).ConfigureAwait(false);
+				if (Node is null) {
+					return;
+				}
 				await AddItemsAsync(Node, cancellationToken);
 				await SyncHelper.SwitchToMainThreadAsync(cancellationToken);
 				_Menu.RefreshItemsSource(true);
