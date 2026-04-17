@@ -3,7 +3,7 @@ using System.IO;
 using System.Windows;
 using CLR;
 
-namespace Codist.FileList;
+namespace Codist.FileBrowser;
 
 sealed class FileSystemItem
 {
@@ -77,8 +77,11 @@ sealed class FileSystemItem
 
 	public bool IsSolutionItem {
 		get {
+			if (_Type != FileItemType.File) {
+				return false;
+			}
 			if (_IsSolutionItem == 0) {
-				_IsSolutionItem = (byte)((!IsFile || CodistPackage.DTE.Solution.FindProjectItem(_Info.FullName) != null) ? 1 : 255);
+				_IsSolutionItem = (byte)((CodistPackage.DTE.Solution.FindProjectItem(_Info.FullName) != null) ? 1 : 255);
 			}
 			return _IsSolutionItem == 1;
 		}

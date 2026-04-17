@@ -3248,4 +3248,9 @@ Shift: 匹配大小写</value>
   <data name="T_ErrorInexistentDirectory" xml:space="preserve">
     <value>目录不存在:</value>
   </data>
+  <data name="CMDT_ToggleMultiSelectionMode" xml:space="preserve">
+    <value>切换多选模式
+按下此按钮进入多选模式。点击列表项将切换其选中状态，便于选中多项。
+非多选模式下，按Ctrl或Shift键选择多项。</value>
+  </data>
 </root>

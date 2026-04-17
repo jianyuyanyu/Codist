@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Codist.Controls;
-using Codist.FileList;
+using Codist.FileBrowser;
 using Microsoft.VisualStudio.Text.Editor;
 using R = Codist.Properties.Resources;
 
@@ -17,7 +17,7 @@ sealed partial class FolderMargin : IWpfTextViewMargin
 	readonly ThemedToggleButton _Button;
 	readonly IWpfTextView _View;
 	Popup _Popup;
-	FileListControl _FileList;
+	FileList _FileList;
 	CancellationTokenSource _CancellationTokenSource;
 
 	public FrameworkElement VisualElement => _Button;
@@ -56,7 +56,7 @@ sealed partial class FolderMargin : IWpfTextViewMargin
 				Focusable = true,
 				Resources = SharedDictionaryManager.VirtualList,
 				MaxHeight = 600,
-				Child = _FileList = new FileListControl()
+				Child = _FileList = new FileList()
 			};
 			_Popup.Closed += Popup_Closed;
 			KeystrokeThief.Bind(_Popup);

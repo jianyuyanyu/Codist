@@ -1,4 +1,4 @@
-﻿namespace Codist.FileList;
+﻿namespace Codist.FileBrowser;
 
 enum FileItemType
 {

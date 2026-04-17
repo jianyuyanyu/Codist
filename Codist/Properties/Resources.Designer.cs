@@ -3150,6 +3150,17 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Multi-selection Mode
+        ///Press down this button to enter multi-selection mode that single clicking on items will toggle their selection, making it easier to select multiple items.
+        ///To multi-select items without entering this mode, press Ctrl or Shift key when clicking on items..
+        /// </summary>
+        internal static string CMDT_ToggleMultiSelectionMode {
+            get {
+                return ResourceManager.GetString("CMDT_ToggleMultiSelectionMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Undo changes.
         /// </summary>
         internal static string CMDT_UndoChanges {

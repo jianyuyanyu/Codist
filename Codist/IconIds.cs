@@ -105,6 +105,7 @@ static class IconIds
 	public const int Filter = KnownImageIds.Filter;
 	public const int FilterCustomized = KnownImageIds.EditFilter;
 	public const int ClearFilter = KnownImageIds.DeleteFilter;
+	public const int MultiSelection = KnownImageIds.CheckBoxList;
 	public const int Add = KnownImageIds.Add;
 	public const int Remove = KnownImageIds.Cancel;
 	public const int Enabled = KnownImageIds.OnlineStatusAvailable;

@@ -22,9 +22,9 @@ using Microsoft.VisualStudio.Shell;
 using R = Codist.Properties.Resources;
 using Task = System.Threading.Tasks.Task;
 
-namespace Codist.FileList;
+namespace Codist.FileBrowser;
 
-sealed class FileListControl : VirtualList
+sealed class FileList : VirtualList
 {
 	readonly TextBlock _PathBlock, _SelectionInfoBlock;
 	readonly TextBox _FilterBox;
@@ -34,22 +34,39 @@ sealed class FileListControl : VirtualList
 
 	ObservableCollection<FileSystemItem> _Items;
 	ICollectionView _ItemsView;
-	bool _LockFilter;
+	bool _LockFilter, _MultiSelectionMode;
 
 	string _ActiveFilePath, _ActiveDirPath, _SolutionFolderPath, _ProjectFolderPath;
 	int _ProjectIconId;
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	public FileListControl() {
+	public FileList() {
 		MaxWidth = 600;
 		BorderThickness = WpfHelper.NoMargin;
 		Focusable = true;
-		SetResourceReference(StyleProperty, typeof(VirtualList));
-		this.ReferenceProperty(BackgroundProperty, CommonControlsColors.ComboBoxListBackgroundBrushKey)
+		this.ReferenceStyle(typeof(VirtualList))
+			.ReferenceProperty(BackgroundProperty, CommonControlsColors.ComboBoxListBackgroundBrushKey)
 			.ReferenceProperty(BorderBrushProperty, CommonControlsColors.ComboBoxListBorderBrushKey);
 
 		ContextMenu m;
-		Header = new Grid {
+		ItemTemplate = SharedDictionaryManager.VirtualList.Get<DataTemplate>("FileItemTemplate");
+		ItemContainerStyle = new Style(typeof(ListBoxItem)) {
+			Setters = {
+				new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch),
+				new Setter(PaddingProperty, WpfHelper.TinyMargin),
+				new Setter(MaxWidthProperty, 550d),
+				new Setter(ToolTipService.ToolTipProperty, new Binding {
+					Converter = new FileSystemItemToTooltipConverter()
+				}),
+				new Setter(ToolTipService.PlacementProperty, PlacementMode.Right),
+				new Setter(ToolTipService.ShowDurationProperty, 30000),
+				new Setter(ToolTipService.InitialShowDelayProperty, 500),
+			},
+		};
+		SelectionMode = SelectionMode.Extended;
+		MouseUp += HandleMouseUp;
+		#region Extra controls
+		var pathControl = new Grid {
 			ColumnDefinitions = {
 				new ColumnDefinition { Width = GridLength.Auto },
 				new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
@@ -71,23 +88,7 @@ sealed class FileListControl : VirtualList
 				.Set(ref _PathBlock)
 			}
 		};
-		ItemsSource = _Items = [];
-		ItemTemplate = CreateItemTemplate();
-		ItemContainerStyle = new Style(typeof(ListBoxItem)) {
-			Setters = {
-				new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch),
-				new Setter(PaddingProperty, WpfHelper.TinyMargin),
-				new Setter(MaxWidthProperty, 550d),
-				new Setter(ToolTipService.ToolTipProperty, new Binding {
-					Converter = new FileSystemItemToTooltipConverter()
-				}),
-				new Setter(ToolTipService.PlacementProperty, PlacementMode.Right),
-				new Setter(ToolTipService.ShowDurationProperty, 30000),
-				new Setter(ToolTipService.InitialShowDelayProperty, 500),
-			},
-		};
-		SelectionMode = SelectionMode.Extended;
-		Footer = new StackPanel {
+		var toolbar = new StackPanel {
 			Orientation = Orientation.Horizontal,
 			Margin = WpfHelper.SmallMargin,
 			Children = {
@@ -111,6 +112,7 @@ sealed class FileListControl : VirtualList
 						Children = {
 							new ThemedButton(IconIds.ClearFilter, R.CMD_ClearFilter, ClearFilterBox){ MinHeight = 10 }
 								.ClearSpacing(),
+							new ThemedToggleButton(IconIds.MultiSelection, R.CMDT_ToggleMultiSelectionMode, ToggleMultiSelectionMode).ClearSpacing(),
 							new ThemedButton(IconIds.GoToCurrentFile, R.CMD_BackToCurrentFile, GoToCurrentFile) {
 								MinHeight = 10
 							}.ClearSpacing().Set(ref _GoToCurrentFileButton),
@@ -129,6 +131,10 @@ sealed class FileListControl : VirtualList
 				}.Set(ref _SelectionInfoBlock)
 			}
 		};
+		Footer = new StackPanel {
+			Children = { pathControl, toolbar }
+		};
+		#endregion
 		ContextMenu = m = new() {
 			Resources = SharedDictionaryManager.ContextMenu,
 			Items = {
@@ -166,38 +172,25 @@ sealed class FileListControl : VirtualList
 			_GoToCurrentFileButton?.ToggleVisibility(hasValue);
 			if (hasValue) {
 				var pi = CodistPackage.DTE.Solution.FindProjectItem(value);
-				if (pi != null) {
-					if (!String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
-						_ProjectFolderPath = value;
-						var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
-						if (icon == IconIds.OtherFile) {
-							icon = IconIds.GoToProjectFolder;
-						}
-						_ProjectIconId = icon;
-						_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
-						SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
+				if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
+					_ProjectFolderPath = value;
+					var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
+					if (icon == IconIds.OtherFile) {
+						icon = IconIds.GoToProjectFolder;
 					}
+					_ProjectIconId = icon;
+					_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
+					SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
+				}
+				else {
+					_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
+					_ProjectFolderPath = String.Empty;
 				}
 			}
-		}
-	}
-
-	void HandleFolderFileFilterChange(object sender, RoutedEventArgs e) {
-		if (_LockFilter) {
-			return;
-		}
-		var s = (ThemedToggleButton)sender;
-		if (s.IsChecked == true) {
-			_LockFilter = true;
-			if (s == _FolderFilterButton) {
-				_FileFilterButton.IsChecked = false;
-			}
 			else {
-				_FolderFilterButton.IsChecked = false;
+				_ProjectFolderPath = String.Empty;
 			}
-			_LockFilter = false;
 		}
-		ApplyFilter();
 	}
 
 	public IEnumerable<string> SelectedFileNames {
@@ -239,35 +232,6 @@ sealed class FileListControl : VirtualList
 
 	public event EventHandler<EventArgs<FileSystemItem>> FileActivated;
 
-	DataTemplate CreateItemTemplate() {
-		var template = new DataTemplate(typeof(FileSystemItem));
-
-		var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
-		stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
-		stackPanelFactory.SetValue(MarginProperty, WpfHelper.TinyMargin);
-		stackPanelFactory.SetBinding(OpacityProperty, new Binding(nameof(FileSystemItem.IsSolutionItem)) {
-			Converter = new BooleanToOpacityConverter()
-		});
-
-		var iconFactory = new FrameworkElementFactory(typeof(ContentPresenter));
-		iconFactory.SetValue(MarginProperty, new Thickness(0, 0, 8, 0));
-		iconFactory.SetBinding(ContentPresenter.ContentProperty, new Binding(nameof(FileSystemItem.Icon)));
-		stackPanelFactory.AppendChild(iconFactory);
-
-		var textBlockFactory = new FrameworkElementFactory(typeof(TextBlock));
-		textBlockFactory.SetBinding(TextBlock.TextProperty, new Binding(nameof(FileSystemItem.Name)));
-		var fontWeightBinding = new Binding(nameof(FileSystemItem.IsCurrent)) {
-			Converter = BooleanToFontWeightConverter.Instance
-		};
-		textBlockFactory.SetBinding(TextBlock.FontWeightProperty, fontWeightBinding);
-
-		textBlockFactory.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
-		stackPanelFactory.AppendChild(textBlockFactory);
-
-		template.VisualTree = stackPanelFactory;
-		return template;
-	}
-
 	static void SetFolderShortcut(ThemedButton shortcutButton, ref string filePath) {
 		if (String.IsNullOrEmpty(filePath)) {
 			shortcutButton.Visibility = Visibility.Collapsed;
@@ -279,6 +243,7 @@ sealed class FileListControl : VirtualList
 		}
 	}
 
+	#region Event handlers
 	protected override void OnContextMenuOpening(ContextMenuEventArgs e) {
 		base.OnContextMenuOpening(e);
 		ActivationCondition condition = default;
@@ -309,22 +274,41 @@ sealed class FileListControl : VirtualList
 		}
 	}
 
+	void HandleFolderFileFilterChange(object sender, RoutedEventArgs e) {
+		if (_LockFilter) {
+			return;
+		}
+		var s = (ThemedToggleButton)sender;
+		if (s.IsChecked == true) {
+			_LockFilter = true;
+			if (s == _FolderFilterButton) {
+				_FileFilterButton.IsChecked = false;
+			}
+			else {
+				_FolderFilterButton.IsChecked = false;
+			}
+			_LockFilter = false;
+		}
+		ApplyFilter();
+	}
+
 	void FilterBox_TextChanged(object sender, TextChangedEventArgs e) {
 		if (!_LockFilter) {
 			ApplyFilter();
 		}
 	}
 
-	void ClearFilterBox() {
-		ClearFilter();
-		ApplyFilter();
-	}
-
-	void ClearFilter() {
-		_LockFilter = true;
-		_FolderFilterButton.IsChecked = _FileFilterButton.IsChecked = false;
-		_FilterBox.Clear();
-		_LockFilter = false;
+	void ToggleMultiSelectionMode(object sender, RoutedEventArgs e) {
+		if (_MultiSelectionMode = SelectionMode == SelectionMode.Extended) { // we use comparison to switch selection mode
+			MouseUp -= HandleMouseUp;
+			MouseDoubleClick += HandleMouseDoubleClick;
+			SelectionMode = SelectionMode.Multiple;
+		}
+		else {
+			MouseUp += HandleMouseUp;
+			MouseDoubleClick -= HandleMouseDoubleClick;
+			SelectionMode = SelectionMode.Extended;
+		}
 	}
 
 	void OpenInExplorer(object sender, RoutedEventArgs args) {
@@ -368,14 +352,23 @@ sealed class FileListControl : VirtualList
 		}
 	}
 
-	protected override void OnMouseUp(MouseButtonEventArgs e) {
-		base.OnMouseUp(e);
+	void HandleMouseUp(object sender, MouseButtonEventArgs e) {
 		if (e.ChangedButton == MouseButton.Left
 			&& !UIHelper.IsCtrlDown
 			&& !UIHelper.IsShiftDown
 			&& e.OriginalSource is UIElement u
 			&& u.FindAncestor<ListBoxItem>() != null) {
 			ActivateSelectedItem();
+			e.Handled = true;
+		}
+	}
+
+	void HandleMouseDoubleClick(object sender, MouseButtonEventArgs e) {
+		if (e.ChangedButton == MouseButton.Left
+			&& e.OriginalSource is UIElement u
+			&& u.FindAncestor<ListBoxItem>() != null) {
+			ActivateSelectedItem();
+			e.Handled = true;
 		}
 	}
 
@@ -386,6 +379,19 @@ sealed class FileListControl : VirtualList
 		if (c > 1) {
 			_SelectionInfoBlock.AddImage(IconIds.FileLocations).Append(c);
 		}
+	}
+	#endregion
+
+	void ClearFilterBox() {
+		ClearFilter();
+		ApplyFilter();
+	}
+
+	void ClearFilter() {
+		_LockFilter = true;
+		_FolderFilterButton.IsChecked = _FileFilterButton.IsChecked = false;
+		_FilterBox.Clear();
+		_LockFilter = false;
 	}
 
 	void ActivateSelectedItem() {
@@ -410,8 +416,8 @@ sealed class FileListControl : VirtualList
 		FileSystemItem fs;
 		_GoToCurrentFileButton.ToggleVisibility(_ActiveFilePath != null
 			&& ((fs = SelectedItem as FileSystemItem) is null || !fs.IsFile || !fs.IsCurrent));
-		_GoToSolutionFolderButton.ToggleVisibility(!directoryPath.Equals(_SolutionFolderPath, StringComparison.OrdinalIgnoreCase));
-		_GoToProjectFolderButton.ToggleVisibility(!directoryPath.Equals(_ProjectFolderPath, StringComparison.OrdinalIgnoreCase));
+		ToggleFolderButton(_GoToSolutionFolderButton, _SolutionFolderPath, directoryPath);
+		ToggleFolderButton(_GoToProjectFolderButton, _ProjectFolderPath, directoryPath);
 		if (_Items.Count != 0 && SelectedIndex < 0) {
 			SelectedIndex = 0;
 		}
@@ -433,12 +439,16 @@ sealed class FileListControl : VirtualList
 			this.ScrollToSelectedItem();
 		}
 		_GoToCurrentFileButton.ToggleVisibility(false);
-		_GoToSolutionFolderButton.ToggleVisibility(!directory.Equals(_SolutionFolderPath));
+		ToggleFolderButton(_GoToSolutionFolderButton, _SolutionFolderPath, directory);
 		Focus();
 	}
 
+	static void ToggleFolderButton(ThemedButton folderButton, string folderPath, string directory) {
+		folderButton.ToggleVisibility(folderPath.Length != 0 && !directory.Equals(folderPath, StringComparison.OrdinalIgnoreCase));
+	}
+
 	async Task LoadDirectoryAsync(string directoryPath, CancellationToken cancellationToken) {
-		_Items.Clear();
+		_Items?.Clear();
 		SelectedIndex = -1;
 		try {
 			if (!Directory.Exists(directoryPath)) {
@@ -575,7 +585,7 @@ sealed class FileListControl : VirtualList
 	void OpenFolderLink(object s, EventArgs e) {
 		var link = (Hyperlink)s;
 		((TextBlock)link.Parent)
-			.FindAncestor<FileListControl>()
+			.FindAncestor<FileList>()
 			?.NavigateToDirectoryAsync(((PathSegment)link.CommandParameter).Text)
 			.FireAndForget();
 	}
