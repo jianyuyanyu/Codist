@@ -56,7 +56,8 @@
 							<Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static vsp:EnvironmentColors.CommandBarMenuItemMouseOverBrushKey}}"/>
 						</Trigger>
 						<Trigger Property="IsChecked" Value="True">
-							<Setter TargetName="Bd" Property="Background" Value="{DynamicResource VsBrush.FileTabSelectedGradientTop}"/>
+							<Setter TargetName="Bd" Property="Background" Value="{DynamicResource VsBrush.Highlight}"/>
+							<Setter TargetName="Bd" Property="{x:Static vsp:ImageThemingUtilities.ImageBackgroundColorProperty}" Value="{DynamicResource VsBrush.Highlight}"/>
 						</Trigger>
 					</ControlTemplate.Triggers>
 				</ControlTemplate>
