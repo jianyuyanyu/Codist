@@ -34,7 +34,7 @@ sealed class FileList : VirtualList
 
 	ObservableCollection<FileSystemItem> _Items;
 	ICollectionView _ItemsView;
-	bool _LockFilter, _MultiSelectionMode;
+	bool _LockFilter;
 
 	string _ActiveFilePath, _ActiveDirPath, _SolutionFolderPath, _ProjectFolderPath;
 	int _ProjectIconId;
@@ -93,8 +93,8 @@ sealed class FileList : VirtualList
 			Margin = WpfHelper.SmallMargin,
 			Children = {
 				new ThemedControlGroup(
-					_FolderFilterButton = new ThemedToggleButton(IconIds.Folder, R.T_Folder, HandleFolderFileFilterChange).ReferenceProperty(TextBlock.ForegroundProperty, CommonControlsColors.ButtonTextBrushKey),
-					_FileFilterButton = new ThemedToggleButton(IconIds.File, R.T_File, HandleFolderFileFilterChange).ReferenceProperty(TextBlock.ForegroundProperty, CommonControlsColors.ButtonTextBrushKey)
+					_FolderFilterButton = new ThemedToggleButton(IconIds.Folder, R.T_Folder, HandleFolderFileFilterChange),
+					_FileFilterButton = new ThemedToggleButton(IconIds.File, R.T_File, HandleFolderFileFilterChange)
 				) {
 					Margin = WpfHelper.MiddleHorizontalMargin,
 					VerticalAlignment = VerticalAlignment.Center,
@@ -299,7 +299,7 @@ sealed class FileList : VirtualList
 	}
 
 	void ToggleMultiSelectionMode(object sender, RoutedEventArgs e) {
-		if (_MultiSelectionMode = SelectionMode == SelectionMode.Extended) { // we use comparison to switch selection mode
+		if (SelectionMode == SelectionMode.Extended) {
 			MouseUp -= HandleMouseUp;
 			MouseDoubleClick += HandleMouseDoubleClick;
 			SelectionMode = SelectionMode.Multiple;
@@ -1035,31 +1035,6 @@ sealed class FileList : VirtualList
 		}
 	}
 
-	#region Converters
-
-	sealed class BooleanToFontWeightConverter : IValueConverter
-	{
-		public static readonly BooleanToFontWeightConverter Instance = new();
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
-			return (value is bool b && b) ? FontWeights.Bold : FontWeights.Normal;
-		}
-
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
-			throw new NotImplementedException();
-		}
-	}
-
-	sealed class BooleanToOpacityConverter : IValueConverter
-	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
-			return value is bool b && b ? 1.0d : WpfHelper.DimmedOpacity;
-		}
-
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
-			throw new NotImplementedException();
-		}
-	}
-
 	sealed class FileSystemItemToTooltipConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
@@ -1098,5 +1073,4 @@ sealed class FileList : VirtualList
 		}
 	}
 
-	#endregion
 }
