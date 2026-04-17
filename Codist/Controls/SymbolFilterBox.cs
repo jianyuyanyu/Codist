@@ -288,7 +288,7 @@ sealed class SymbolFilterBox : StackPanel
 	static void ToggleFilterButton(ThemedToggleButton button, int label) {
 		if (label > 0) {
 			button.Visibility = Visibility.Visible;
-			(button.Text ?? (button.Text = new ThemedMenuText())).Text = label.ToString();
+			(button.Text ??= new TextBlock()).Text = label.ToString();
 		}
 		else {
 			button.Visibility = Visibility.Collapsed;
