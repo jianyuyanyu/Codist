@@ -7757,6 +7757,15 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to File Explorer.
+        /// </summary>
+        internal static string T_FileExplorer {
+            get {
+                return ResourceManager.GetString("T_FileExplorer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to FilePath.
         /// </summary>
         internal static string T_FilePath {

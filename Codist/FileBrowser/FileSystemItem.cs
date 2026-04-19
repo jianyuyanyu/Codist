@@ -1,21 +1,25 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
 using CLR;
 
 namespace Codist.FileBrowser;
 
-sealed class FileSystemItem
+sealed class FileSystemItem : INotifyPropertyChanged
 {
 	readonly FileSystemInfo _Info;
 	readonly FileItemType _Type;
-	readonly bool _IsCurrent;
+	bool _IsCurrent;
 	FrameworkElement _Icon;
-	byte _IsSolutionItem;
+	SolutionItemInfo _IsSolutionItem;
 
 	long _FileSize = -1;
 	DateTime _CreationTime;
 	DateTime _LastWriteTime;
+
+	public event PropertyChangedEventHandler PropertyChanged;
 
 	public string Name => _Info.Name;
 	public string FullPath => _Info.FullName;
@@ -23,7 +27,15 @@ sealed class FileSystemItem
 	public bool IsEmptyFolder => _Type == FileItemType.EmptyFolder;
 	public bool IsFolder => _Type.CeqAny(FileItemType.Folder, FileItemType.EmptyFolder);
 	public bool IsFile => _Type == FileItemType.File;
-	public bool IsCurrent => _IsCurrent;
+	public bool IsCurrent {
+		get => _IsCurrent;
+		set {
+			if (_IsCurrent != value) {
+				_IsCurrent = value;
+				PropertyChanged?.Invoke(this, new (nameof(IsCurrent)));
+			}
+		}
+	}
 
 	public FrameworkElement Icon => _Icon ??= VsImageHelper.GetImage(_Type switch {
 		FileItemType.Folder => IconIds.Folder,
@@ -75,15 +87,16 @@ sealed class FileSystemItem
 
 	public string FormattedFileSize => IsFile ? FormatFileSize(FileSize) : null;
 
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	public bool IsSolutionItem {
 		get {
 			if (_Type != FileItemType.File) {
 				return false;
 			}
 			if (_IsSolutionItem == 0) {
-				_IsSolutionItem = (byte)((CodistPackage.DTE.Solution.FindProjectItem(_Info.FullName) != null) ? 1 : 255);
+				_IsSolutionItem = GetIsSolutionItem();
 			}
-			return _IsSolutionItem == 1;
+			return _IsSolutionItem == SolutionItemInfo.Yes;
 		}
 	}
 
@@ -185,6 +198,42 @@ sealed class FileSystemItem
 		};
 	}
 
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	internal void RefreshIsSolutionItem() {
+		if (_Type != FileItemType.File
+			|| _IsSolutionItem == 0) { // do not update IsSolutionItem if it is not initialized
+			return;
+		}
+		var i = GetIsSolutionItem();
+		if (i != _IsSolutionItem) {
+			_IsSolutionItem = i;
+			PropertyChanged?.Invoke(this, new(nameof(IsSolutionItem)));
+		}
+	}
+
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	SolutionItemInfo GetIsSolutionItem() {
+		const string MISC_FILES = "{66A2671F-8FB5-11D2-AA7E-00C04F688DDE}";
+		var projItem = CodistPackage.DTE.Solution.FindProjectItem(_Info.FullName);
+		return projItem != null && projItem.Kind != MISC_FILES ? SolutionItemInfo.Yes : SolutionItemInfo.No;
+	}
+
+	internal void ClearIsSolutionItem() {
+		if (_Type != FileItemType.File) {
+			return;
+		}
+		if (_IsSolutionItem != 0) {
+			_IsSolutionItem = 0;
+			PropertyChanged?.Invoke(this, new(nameof(IsSolutionItem)));
+		}
+	}
+	internal void ClearIsCurrent() {
+		if (_IsCurrent) {
+			_IsCurrent = false;
+			PropertyChanged?.Invoke(this, new(nameof(IsCurrent)));
+		}
+	}
+
 	static string FormatFileSize(long bytes) {
 		string[] sizes = { "B", "KB", "MB", "GB", "TB" };
 		int order = 0;
@@ -194,5 +243,12 @@ sealed class FileSystemItem
 			size /= 1024;
 		}
 		return $"{size:0.##} {sizes[order]}";
+	}
+
+	enum SolutionItemInfo : byte
+	{
+		Unknown,
+		Yes,
+		No
 	}
 }

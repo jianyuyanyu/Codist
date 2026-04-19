@@ -40,7 +40,7 @@ sealed class FileList : VirtualList
 	int _ProjectIconId;
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	public FileList() {
+	public FileList(bool inWindowPane = false) {
 		MaxWidth = 600;
 		BorderThickness = WpfHelper.NoMargin;
 		Focusable = true;
@@ -77,7 +77,8 @@ sealed class FileList : VirtualList
 					BorderThickness = WpfHelper.TinyMargin,
 					Margin = WpfHelper.SmallMargin,
 					CornerRadius = WpfHelper.SmallCorner,
-					Child = new ThemedButton(IconIds.OpenFolder, R.CMD_OpenFolder, OpenInExplorer).ClearSpacing().SetProperty(PaddingProperty, WpfHelper.SmallHorizontalMargin)
+					Child = new ThemedButton(IconIds.OpenFolder, R.CMD_OpenFolder, OpenInExplorer).ClearSpacing().SetProperty(PaddingProperty, WpfHelper.SmallHorizontalMargin),
+					VerticalAlignment = VerticalAlignment.Top,
 				}.ReferenceProperty(Border.BorderBrushProperty, CommonControlsColors.TextBoxBorderBrushKey),
 				new TextBlock {
 					Padding = WpfHelper.SmallMargin,
@@ -131,9 +132,15 @@ sealed class FileList : VirtualList
 				}.Set(ref _SelectionInfoBlock)
 			}
 		};
-		Footer = new StackPanel {
+		var commandPanel = new StackPanel {
 			Children = { pathControl, toolbar }
 		};
+		if (inWindowPane) {
+			Header = commandPanel;
+		}
+		else {
+			Footer = commandPanel;
+		}
 		#endregion
 		ContextMenu = m = new() {
 			Resources = SharedDictionaryManager.ContextMenu,
@@ -156,8 +163,7 @@ sealed class FileList : VirtualList
 
 		m.SetBackgroundForCrispImage(ThemeCache.TitleBackgroundColor);
 
-		_SolutionFolderPath = CodistPackage.DTE.Solution.FullName;
-		SetFolderShortcut(_GoToSolutionFolderButton, ref _SolutionFolderPath);
+		UpdateSolutionFolderPath();
 
 		_GoToCurrentFileButton.Visibility = Visibility.Collapsed;
 		_FilterBox.TextChanged += FilterBox_TextChanged;
@@ -168,28 +174,7 @@ sealed class FileList : VirtualList
 		set {
 			ThreadHelper.ThrowIfNotOnUIThread();
 			_ActiveFilePath = value;
-			var hasValue = !string.IsNullOrEmpty(value);
-			_GoToCurrentFileButton?.ToggleVisibility(hasValue);
-			if (hasValue) {
-				var pi = CodistPackage.DTE.Solution.FindProjectItem(value);
-				if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
-					_ProjectFolderPath = value;
-					var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
-					if (icon == IconIds.OtherFile) {
-						icon = IconIds.GoToProjectFolder;
-					}
-					_ProjectIconId = icon;
-					_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
-					SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
-				}
-				else {
-					_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
-					_ProjectFolderPath = String.Empty;
-				}
-			}
-			else {
-				_ProjectFolderPath = String.Empty;
-			}
+			UpdateProjectFolderPath(value);
 		}
 	}
 
@@ -232,6 +217,36 @@ sealed class FileList : VirtualList
 
 	public event EventHandler<EventArgs<FileSystemItem>> FileActivated;
 
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	void UpdateSolutionFolderPath() {
+		_SolutionFolderPath = CodistPackage.DTE.Solution.FullName;
+		SetFolderShortcut(_GoToSolutionFolderButton, ref _SolutionFolderPath);
+	}
+
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	void UpdateProjectFolderPath(string value) {
+		if (String.IsNullOrEmpty(value)) {
+			_ProjectFolderPath = String.Empty;
+			return;
+		}
+
+		var pi = CodistPackage.DTE.Solution.FindProjectItem(value);
+		if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
+			_ProjectFolderPath = value;
+			var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
+			if (icon == IconIds.OtherFile) {
+				icon = IconIds.GoToProjectFolder;
+			}
+			_ProjectIconId = icon;
+			_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
+			SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
+		}
+		else {
+			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
+			_ProjectFolderPath = String.Empty;
+		}
+	}
+
 	static void SetFolderShortcut(ThemedButton shortcutButton, ref string filePath) {
 		if (String.IsNullOrEmpty(filePath)) {
 			shortcutButton.Visibility = Visibility.Collapsed;
@@ -260,6 +275,7 @@ sealed class FileList : VirtualList
 				condition |= ActivationCondition.HasSingleItem;
 			}
 			if (condition.MatchFlags(ActivationCondition.HasSingleItem | ActivationCondition.HasFile)
+				&& _SolutionFolderPath.Length != 0
 				&& ((FileSystemItem)SelectedItem).IsSolutionItem) {
 				condition |= ActivationCondition.HasSingleSolutionItem;
 			}
@@ -429,6 +445,18 @@ sealed class FileList : VirtualList
 		BuildPathNavigator(directoryPath);
 	}
 
+	public Task LoadCurrentDirectoryAsync(CancellationToken cancellationToken = default) {
+		if (!File.Exists(_ActiveFilePath)) {
+			IsEnabled = false;
+			return Task.CompletedTask;
+		}
+		else {
+			IsEnabled = true;
+		}
+		var (folder, _) = FileHelper.DeconstructPath(_ActiveFilePath, true);
+		return LoadCurrentDirectoryAsync(folder, cancellationToken);
+	}
+
 	public async Task LoadCurrentDirectoryAsync(string directory, CancellationToken cancellationToken = default) {
 		SetCurrentDir(directory);
 		await LoadDirectoryAsync(_ActiveDirPath, cancellationToken);
@@ -447,18 +475,22 @@ sealed class FileList : VirtualList
 		folderButton.ToggleVisibility(folderPath.Length != 0 && !directory.Equals(folderPath, StringComparison.OrdinalIgnoreCase));
 	}
 
-	async Task LoadDirectoryAsync(string directoryPath, CancellationToken cancellationToken) {
+	Task LoadDirectoryAsync(string directoryPath, CancellationToken cancellationToken) {
 		_Items?.Clear();
 		SelectedIndex = -1;
+		if (!Directory.Exists(directoryPath)) {
+			MessageWindow.Error(R.T_ErrorInexistentDirectory + Environment.NewLine + directoryPath, R.T_FailedToOpenFolder);
+			return Task.CompletedTask;
+		}
+		return UncheckedLoadDirectoryAsync(directoryPath, cancellationToken);
+	}
+
+	async Task UncheckedLoadDirectoryAsync(string directoryPath, CancellationToken cancellationToken) {
 		try {
-			if (!Directory.Exists(directoryPath)) {
-				await SyncHelper.SwitchToMainThreadAsync(cancellationToken);
-				MessageWindow.Error(R.T_ErrorInexistentDirectory + Environment.NewLine + directoryPath, R.T_FailedToOpenFolder);
-				return;
-			}
 			var (newItems, folders, files) = GetFileSystemItems(directoryPath, _ActiveFilePath, cancellationToken);
 			_FolderFilterButton.SetText(folders.ToText());
 			_FileFilterButton.SetText(files.ToText());
+			await SyncHelper.SwitchToMainThreadAsync(cancellationToken);
 			_Items = new ObservableCollection<FileSystemItem>(newItems);
 			ItemsSource = _ItemsView = CollectionViewSource.GetDefaultView(_Items);
 			var highlightItem = newItems.FirstOrDefault(i => i.IsCurrent);
@@ -484,45 +516,35 @@ sealed class FileList : VirtualList
 		var dirs = dirInfo.GetDirectories();
 		var files = dirInfo.GetFiles();
 		var items = new List<FileSystemItem>(dirs.Length + files.Length);
-		string highlightName = null;
-		bool highlightIsFile = false;
-		if (!String.IsNullOrEmpty(highlightFilePath) &&
-			highlightFilePath.StartsWith(directory, StringComparison.OrdinalIgnoreCase)) {
-			var relativePath = highlightFilePath.Substring(highlightFilePath[directory.Length] == '\\' ? directory.Length + 1 : directory.Length);
-			if (!String.IsNullOrEmpty(relativePath)) {
-				int slashIndex = relativePath.IndexOf('\\');
-				if (slashIndex == -1) {
-					highlightName = relativePath;
-					highlightIsFile = true;
-				}
-				else {
-					highlightName = relativePath.Substring(0, slashIndex);
-					//highlightIsFile = false;
-				}
-			}
-		}
+		var highlight = GetHighlightName(directory, highlightFilePath);
 
-		bool isCurrent;
 		foreach (var dir in dirs) {
 			if (token.IsCancellationRequested) break;
-			isCurrent = !highlightIsFile
-				&& highlightName != null
-				&& String.Equals(dir.Name, highlightName, StringComparison.OrdinalIgnoreCase);
-
-			try { items.Add(new FileSystemItem(dir, dir.EnumerateFileSystemInfos().Any(), isCurrent)); }
+			try { items.Add(new FileSystemItem(dir, dir.EnumerateFileSystemInfos().Any(), highlight.IsCurrent(dir))); }
 			catch (UnauthorizedAccessException) { items.Add(new FileSystemItem(dir, FileItemType.InaccessibleFolder)); }
 			catch (SecurityException) { items.Add(new FileSystemItem(dir, FileItemType.InaccessibleFolder)); }
 		}
 
 		foreach (var file in files) {
-			if (token.IsCancellationRequested) break;
-			isCurrent = highlightIsFile
-				&& highlightName != null
-				&& String.Equals(file.Name, highlightName, StringComparison.OrdinalIgnoreCase);
-			items.Add(new FileSystemItem(file, isCurrent));
+			items.Add(new FileSystemItem(file, highlight.IsCurrent(file)));
 		}
 
 		return (items, dirs.Length, files.Length);
+	}
+
+	static HighlightItem GetHighlightName(string directory, string highlightFilePath) {
+		if (String.IsNullOrEmpty(highlightFilePath) ||
+			!highlightFilePath.StartsWith(directory, StringComparison.OrdinalIgnoreCase)) {
+			return default;
+		}
+		var relativePath = highlightFilePath.Substring(highlightFilePath[directory.Length] == '\\' ? directory.Length + 1 : directory.Length);
+		if (String.IsNullOrEmpty(relativePath)) {
+			return default;
+		}
+		int slashIndex = relativePath.IndexOf('\\');
+		return slashIndex == -1
+			? new HighlightItem(true, relativePath)
+			: new HighlightItem(false, relativePath.Substring(0, slashIndex));
 	}
 
 	void BuildPathNavigator(string path) {
@@ -598,6 +620,9 @@ sealed class FileList : VirtualList
 
 	void ApplyFilter() {
 		const int ALL = 0, FILES = 1, FOLDERS = 2;
+		if (_ItemsView is null) {
+			return;
+		}
 		var keywords = _FilterBox.Text.Split([' '], StringSplitOptions.RemoveEmptyEntries);
 		var fs = _FolderFilterButton.IsChecked == true ? FOLDERS : _FileFilterButton.IsChecked == true ? FILES : ALL;
 
@@ -649,8 +674,14 @@ sealed class FileList : VirtualList
 					break;
 				}
 			}
-			dte.ToolWindows.SolutionExplorer.GetItem(String.Join(@"\", parents)).Select(EnvDTE.vsUISelectionType.vsUISelectionTypeSelect);
-			FileActivated?.Invoke(this, new(fsi));
+
+			try {
+				dte.ToolWindows.SolutionExplorer.GetItem(String.Join(@"\", parents)).Select(EnvDTE.vsUISelectionType.vsUISelectionTypeSelect);
+				FileActivated?.Invoke(this, new(fsi));
+			}
+			catch (Exception ex) {
+				MessageWindow.Error(ex, source: this);
+			}
 		}
 	}
 
@@ -844,6 +875,90 @@ sealed class FileList : VirtualList
 	void ShowProperties(object sender, RoutedEventArgs args) {
 		if (SelectedItem is FileSystemItem fsi) {
 			NativeMethods.ShowFileProperties(fsi.FullPath);
+		}
+	}
+
+	#region Refresh methods for window mode
+	internal Task RefreshSolutionAsync(CancellationToken cancellationToken) {
+		return String.IsNullOrEmpty(_ActiveDirPath)
+			? Task.CompletedTask
+			: InternalRefreshSolutionAsync(cancellationToken);
+	}
+
+	async Task InternalRefreshSolutionAsync(CancellationToken cancellationToken) {
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		UpdateSolutionFolderPath();
+		if (_SolutionFolderPath.Length == 0) { // solution closed
+			_ProjectFolderPath = String.Empty;
+			foreach (var item in _Items) {
+				item.ClearIsSolutionItem();
+			}
+			ToggleFolderButton(_GoToProjectFolderButton, _ProjectFolderPath, _ActiveDirPath);
+		}
+		else {
+			CurrentFile = CodistPackage.DTE.Solution.FullName;
+			await LoadCurrentDirectoryAsync(cancellationToken);
+		}
+		ToggleFolderButton(_GoToSolutionFolderButton, _SolutionFolderPath, _ActiveDirPath);
+		BuildPathNavigator(_ActiveDirPath);
+	}
+
+	internal void ClearCurrentFile() {
+		CurrentFile = null;
+		foreach (var item in _Items) {
+			item.ClearIsCurrent();
+		}
+		_GoToCurrentFileButton.Visibility = Visibility.Collapsed;
+	}
+
+	internal Task RefreshProjectAsync(CancellationToken cancellationToken) {
+		return String.IsNullOrEmpty(_ActiveDirPath)
+			? Task.CompletedTask
+			: InternalRefreshProjectAsync(cancellationToken);
+	}
+
+	async Task InternalRefreshProjectAsync(CancellationToken cancellationToken) {
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		UpdateProjectFolderPath(_ActiveDirPath);
+		ToggleFolderButton(_GoToProjectFolderButton, _ProjectFolderPath, _ActiveDirPath);
+		BuildPathNavigator(_ActiveDirPath);
+	}
+
+	internal async Task RefreshCurrentFileAsync(bool solutionJustLoaded, CancellationToken cancellationToken) {
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		CurrentFile = TextEditorHelper.GetActiveWpfInteractiveView().TextBuffer.GetTextDocument().FilePath;
+		if (solutionJustLoaded || _ActiveDirPath is null) {
+			_ActiveDirPath ??= Path.GetDirectoryName(CurrentFile);
+			BuildPathNavigator(_ActiveDirPath);
+			await LoadCurrentDirectoryAsync(cancellationToken);
+		}
+		else {
+			BuildPathNavigator(_ActiveDirPath);
+			var highlight = GetHighlightName(_ActiveDirPath, _ActiveFilePath);
+			foreach (var item in _Items) {
+				item.RefreshIsSolutionItem();
+				item.IsCurrent = highlight.IsCurrent(item);
+			}
+		}
+		FileSystemItem fs;
+		_GoToCurrentFileButton.ToggleVisibility(_ActiveFilePath != null
+				&& ((fs = SelectedItem as FileSystemItem) is null || !fs.IsFile || !fs.IsCurrent));
+	}
+	#endregion
+
+	readonly struct HighlightItem(bool isFile, string name)
+	{
+		public readonly bool IsFile = isFile;
+		public readonly string Name = name;
+
+		public bool IsCurrent(DirectoryInfo dir) {
+			return !IsFile && String.Equals(Name, dir.Name, StringComparison.OrdinalIgnoreCase);
+		}
+		public bool IsCurrent(FileInfo file) {
+			return IsFile && String.Equals(Name, file.Name, StringComparison.OrdinalIgnoreCase);
+		}
+		public bool IsCurrent(FileSystemItem item) {
+			return IsFile == item.IsFile && String.Equals(Name, item.Name, StringComparison.OrdinalIgnoreCase);
 		}
 	}
 

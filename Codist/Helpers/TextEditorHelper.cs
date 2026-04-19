@@ -628,6 +628,7 @@ static class TextEditorHelper
 
 	#region TextView and editor
 	public static event EventHandler<TextViewCreatedEventArgs> ActiveTextViewChanged;
+	public static event EventHandler AllTextViewClosed;
 
 	public static string GetViewCategory(this ITextView view) {
 		return view.Options.GetOptionValue(DefaultWpfViewOptions.AppearanceCategory);
@@ -913,6 +914,9 @@ static class TextEditorHelper
 						__ActiveDocumentView = null;
 					}
 					__WpfTextViews.Remove(v);
+					if (__WpfTextViews.Count == 0) {
+						AllTextViewClosed?.Invoke(v, EventArgs.Empty);
+					}
 				}
 				if (__ActiveInteractiveView == v) {
 					__ActiveInteractiveView = null;

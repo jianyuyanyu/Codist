@@ -3266,4 +3266,7 @@ Click to view folder containing current file</value>
 Press down this button to enter multi-selection mode that single clicking on items will toggle their selection, making it easier to select multiple items.
 To multi-select items without entering this mode, press Ctrl or Shift key when clicking on items.</value>
   </data>
+  <data name="T_FileExplorer" xml:space="preserve">
+    <value>File Explorer</value>
+  </data>
 </root>

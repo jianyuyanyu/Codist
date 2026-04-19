@@ -3253,4 +3253,7 @@ Shift: 匹配大小写</value>
 按下此按钮进入多选模式。点击列表项将切换其选中状态，便于选中多项。
 非多选模式下，按Ctrl或Shift键选择多项。</value>
   </data>
+  <data name="T_FileExplorer" xml:space="preserve">
+    <value>文件管理器</value>
+  </data>
 </root>
