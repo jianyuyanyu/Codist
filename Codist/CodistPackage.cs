@@ -48,7 +48,6 @@ sealed class CodistPackage : AsyncPackage
 
 	public static CodistPackage Instance { get; private set; }
 	public static Version VsVersion => Vs.Version;
-	public static EnvDTE80.DTE2 DTE { get; } = GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
 	public static IntPtr WindowHandle { get; private set; }
 
 	public static OleMenuCommandService MenuService {
@@ -61,7 +60,7 @@ sealed class CodistPackage : AsyncPackage
 	public static DebuggerStatus DebuggerStatus {
 		get {
 			ThreadHelper.ThrowIfNotOnUIThread(nameof(DebuggerStatus));
-			switch (DTE.Debugger.CurrentMode) {
+			switch (ServicesHelper.Instance.DTE.Debugger.CurrentMode) {
 				case EnvDTE.dbgDebugMode.dbgBreakMode: return DebuggerStatus.Break;
 				case EnvDTE.dbgDebugMode.dbgDesignMode: return DebuggerStatus.Design;
 				case EnvDTE.dbgDebugMode.dbgRunMode: return DebuggerStatus.Running;

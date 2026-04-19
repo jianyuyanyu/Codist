@@ -34,6 +34,8 @@ namespace Codist
 
 		public static ServicesHelper Instance { get; } = new ServicesHelper();
 
+		public EnvDTE80.DTE2 DTE { get; } = Package.GetGlobalService(typeof(Microsoft.VisualStudio.Shell.Interop.SDTE)) as EnvDTE80.DTE2;
+
 		[Import]
 		public IClassificationFormatMapService ClassificationFormatMap { get; private set; }
 

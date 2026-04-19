@@ -17,7 +17,7 @@ internal static class NewTextFileCommand
 
 	static void Execute(object sender, EventArgs e) {
 		ThreadHelper.ThrowIfNotOnUIThread();
-		CodistPackage.DTE.ItemOperations.NewFile();
+		ServicesHelper.Instance.DTE.ItemOperations.NewFile();
 		//IVsUIShell uiShell = ServicesHelper.Get<IVsUIShell, SVsUIShell>();
 		//var adapterFactory = ServicesHelper.Instance.EditorAdaptersFactory;
 		//var documentFactory = ServicesHelper.Instance.TextDocumentFactory;

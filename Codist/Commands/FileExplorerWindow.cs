@@ -27,7 +27,7 @@ public class FileExplorerWindow : ToolWindowPane
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	public FileExplorerWindow() : base(null) {
 		Caption = R.T_FileExplorer;
-		var activeFile = CodistPackage.DTE.ActiveDocument?.FullName ?? CodistPackage.DTE.Solution.FullName;
+		var activeFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName ?? ServicesHelper.Instance.DTE.Solution.FullName;
 		Content = _FileList = new FileList(true) {
 			CurrentFile = activeFile,
 			Resources = SharedDictionaryManager.VirtualList

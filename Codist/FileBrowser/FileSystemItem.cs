@@ -214,7 +214,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	SolutionItemInfo GetIsSolutionItem() {
 		const string MISC_FILES = "{66A2671F-8FB5-11D2-AA7E-00C04F688DDE}";
-		var projItem = CodistPackage.DTE.Solution.FindProjectItem(_Info.FullName);
+		var projItem = ServicesHelper.Instance.DTE.Solution.FindProjectItem(_Info.FullName);
 		return projItem != null && projItem.Kind != MISC_FILES ? SolutionItemInfo.Yes : SolutionItemInfo.No;
 	}
 

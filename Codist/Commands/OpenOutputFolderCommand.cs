@@ -98,7 +98,7 @@ namespace Codist.Commands
 
 		static Project GetSelectedProject() {
 			ThreadHelper.ThrowIfNotOnUIThread();
-			var dte = CodistPackage.DTE;
+			var dte = ServicesHelper.Instance.DTE;
 			var p = dte.ActiveWindow.Project;
 			if (p != null) {
 				return p;

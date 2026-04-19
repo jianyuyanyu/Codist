@@ -454,7 +454,7 @@ static class TextEditorHelper
 	public static bool IsCommandAvailable(string command) {
 		ThreadHelper.ThrowIfNotOnUIThread();
 		try {
-			return CodistPackage.DTE.Commands.Item(command).IsAvailable;
+			return ServicesHelper.Instance.DTE.Commands.Item(command).IsAvailable;
 		}
 		catch (ArgumentException) {
 			return false;
@@ -465,7 +465,7 @@ static class TextEditorHelper
 		ThreadHelper.ThrowIfNotOnUIThread();
 		try {
 			if (IsCommandAvailable(command)) {
-				CodistPackage.DTE.ExecuteCommand(command, args);
+				ServicesHelper.Instance.DTE.ExecuteCommand(command, args);
 			}
 		}
 		catch (System.Runtime.InteropServices.COMException ex) {
@@ -760,7 +760,7 @@ static class TextEditorHelper
 	}
 	public static IWpfTextView GetActiveWpfDocumentView(this IServiceProvider service) {
 		ThreadHelper.ThrowIfNotOnUIThread();
-		var doc = CodistPackage.DTE.ActiveDocument;
+		var doc = ServicesHelper.Instance.DTE.ActiveDocument;
 		if (doc == null) {
 			return null;
 		}

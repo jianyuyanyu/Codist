@@ -52,16 +52,16 @@ namespace Codist
 		}
 
 		public static (string platformName, string configName) GetActiveBuildConfiguration() {
-			return GetActiveBuildConfiguration(CodistPackage.DTE.ActiveDocument);
+			return GetActiveBuildConfiguration(ServicesHelper.Instance.DTE.ActiveDocument);
 		}
 		public static void SetActiveBuildConfiguration(string configName) {
-			SetActiveBuildConfiguration(CodistPackage.DTE.ActiveDocument, configName);
+			SetActiveBuildConfiguration(ServicesHelper.Instance.DTE.ActiveDocument, configName);
 		}
 
 		public static Chain<string> GetBuildConfigNames() {
 			ThreadHelper.ThrowIfNotOnUIThread();
 			var configs = new Chain<string>();
-			foreach (EnvDTE80.SolutionConfiguration2 c in CodistPackage.DTE.Solution.SolutionBuild.SolutionConfigurations) {
+			foreach (EnvDTE80.SolutionConfiguration2 c in ServicesHelper.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations) {
 				foreach (EnvDTE.SolutionContext context in c.SolutionContexts) {
 					if (configs.Contains(context.ConfigurationName) == false) {
 						configs.Add(context.ConfigurationName);
@@ -74,7 +74,7 @@ namespace Codist
 		public static (string platformName, string configName) GetActiveBuildConfiguration(EnvDTE.Document document) {
 			ThreadHelper.ThrowIfNotOnUIThread();
 			var pn =  document.ProjectItem.ContainingProject.UniqueName;
-			foreach (EnvDTE80.SolutionConfiguration2 c in CodistPackage.DTE.Solution.SolutionBuild.SolutionConfigurations) {
+			foreach (EnvDTE80.SolutionConfiguration2 c in ServicesHelper.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations) {
 				foreach (EnvDTE.SolutionContext context in c.SolutionContexts) {
 					if (context.ProjectName == pn) {
 						return (c.PlatformName, context.ConfigurationName);
@@ -87,7 +87,7 @@ namespace Codist
 		public static void SetActiveBuildConfiguration(EnvDTE.Document document, string configName) {
 			ThreadHelper.ThrowIfNotOnUIThread();
 			var pn = document.ProjectItem.ContainingProject.UniqueName;
-			foreach (EnvDTE80.SolutionConfiguration2 c in CodistPackage.DTE.Solution.SolutionBuild.SolutionConfigurations) {
+			foreach (EnvDTE80.SolutionConfiguration2 c in ServicesHelper.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations) {
 				foreach (EnvDTE.SolutionContext context in c.SolutionContexts) {
 					if (context.ProjectName == pn) {
 						context.ConfigurationName = configName;
@@ -99,7 +99,7 @@ namespace Codist
 
 		public static EnvDTE.Project GetActiveProjectInSolutionExplorer() {
 			ThreadHelper.ThrowIfNotOnUIThread();
-			if (CodistPackage.DTE.ToolWindows.SolutionExplorer.SelectedItems is object[] selectedObjects) {
+			if (ServicesHelper.Instance.DTE.ToolWindows.SolutionExplorer.SelectedItems is object[] selectedObjects) {
 				foreach (EnvDTE.UIHierarchyItem hi in selectedObjects.OfType<EnvDTE.UIHierarchyItem>()) {
 					if (hi.Object is EnvDTE.Project item) {
 						return item;
@@ -112,7 +112,7 @@ namespace Codist
 		public static TObj GetFirstSelectedItemInSolutionExplorer<TObj>(Predicate<TObj> predicate)
 			where TObj : class {
 			ThreadHelper.ThrowIfNotOnUIThread();
-			if (CodistPackage.DTE.ToolWindows.SolutionExplorer.SelectedItems is object[] selectedObjects) {
+			if (ServicesHelper.Instance.DTE.ToolWindows.SolutionExplorer.SelectedItems is object[] selectedObjects) {
 				foreach (EnvDTE.UIHierarchyItem hi in selectedObjects.OfType<EnvDTE.UIHierarchyItem>()) {
 					if (hi.Object is TObj item
 						&& predicate(item)) {
@@ -125,8 +125,8 @@ namespace Codist
 
 		public static EnvDTE.Project GetProject(string projectName) {
 			ThreadHelper.ThrowIfNotOnUIThread();
-			var projects = CodistPackage.DTE.Solution.Projects;
-			var projectPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(CodistPackage.DTE.Solution.FullName), projectName));
+			var projects = ServicesHelper.Instance.DTE.Solution.Projects;
+			var projectPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ServicesHelper.Instance.DTE.Solution.FullName), projectName));
 			for (int i = 1; i <= projects.Count; i++) {
 				var project = projects.Item(i);
 				if (project.FullName.Length == 0 && project.Kind == ProjectFolderKind) {
@@ -138,7 +138,7 @@ namespace Codist
 					return project;
 				}
 			}
-			return CodistPackage.DTE.Solution.Projects.Item(projectName);
+			return ServicesHelper.Instance.DTE.Solution.Projects.Item(projectName);
 
 			EnvDTE.Project FindProject(EnvDTE.ProjectItems items, string pp) {
 				for (int i = 1; i <= items.Count; i++) {
@@ -186,7 +186,7 @@ namespace Codist
 		public static bool IsVsixProject() {
 			ThreadHelper.ThrowIfNotOnUIThread();
 			try {
-				return CodistPackage.DTE.ActiveDocument?.ProjectItem?.ContainingProject?.ExtenderNames is string[] extenders && Array.IndexOf(extenders, VsixProjectExtender) != -1;
+				return ServicesHelper.Instance.DTE.ActiveDocument?.ProjectItem?.ContainingProject?.ExtenderNames is string[] extenders && Array.IndexOf(extenders, VsixProjectExtender) != -1;
 			}
 			catch (ArgumentException) {
 				// hack: for https://github.com/wmjordan/Codist/issues/124

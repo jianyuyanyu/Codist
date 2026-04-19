@@ -632,7 +632,7 @@ partial class SmartBar
 		}
 		catch (NullReferenceException) { }
 		catch (ArgumentException) { }
-		var w = CodistPackage.DTE.ItemOperations.NewFile("General\\Text File", name);
+		var w = ServicesHelper.Instance.DTE.ItemOperations.NewFile("General\\Text File", name);
 		using var sbr = ReusableStringBuilder.AcquireDefault(1000);
 		var sb = sbr.Resource;
 		var option = FindOptions.OrdinalComparison | FindOptions.SingleLine;

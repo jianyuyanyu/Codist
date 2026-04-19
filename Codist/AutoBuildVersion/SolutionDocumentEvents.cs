@@ -66,7 +66,7 @@ namespace Codist
 				WriteBuildText(DateTime.Now.ToLongTimeString() + " " + R.T_BuildStarted + Environment.NewLine);
 			}
 			if (Config.Instance.BuildOptions.MatchFlags(BuildOptions.PrintSolutionProjectProperties)) {
-				PrintProperties(CodistPackage.DTE.Solution.Properties, "Solution " + CodistPackage.DTE.Solution.FileName);
+				PrintProperties(ServicesHelper.Instance.DTE.Solution.Properties, "Solution " + ServicesHelper.Instance.DTE.Solution.FileName);
 			}
 
 			return VSConstants.S_OK;

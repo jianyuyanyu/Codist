@@ -136,7 +136,7 @@ sealed partial class OptionsWindow
 
 			[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.EventHandler)]
 			protected override void ExportContent(StreamWriter writer) {
-				var commands = CodistPackage.DTE.Commands;
+				var commands = ServicesHelper.Instance.DTE.Commands;
 				var c = commands.Count;
 				var s = new List<CommandInfo>();
 				var s2 = new List<CommandInfo>(c);

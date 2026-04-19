@@ -217,47 +217,6 @@ sealed class FileList : VirtualList
 
 	public event EventHandler<EventArgs<FileSystemItem>> FileActivated;
 
-	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	void UpdateSolutionFolderPath() {
-		_SolutionFolderPath = CodistPackage.DTE.Solution.FullName;
-		SetFolderShortcut(_GoToSolutionFolderButton, ref _SolutionFolderPath);
-	}
-
-	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	void UpdateProjectFolderPath(string value) {
-		if (String.IsNullOrEmpty(value)) {
-			_ProjectFolderPath = String.Empty;
-			return;
-		}
-
-		var pi = CodistPackage.DTE.Solution.FindProjectItem(value);
-		if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
-			_ProjectFolderPath = value;
-			var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
-			if (icon == IconIds.OtherFile) {
-				icon = IconIds.GoToProjectFolder;
-			}
-			_ProjectIconId = icon;
-			_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
-			SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
-		}
-		else {
-			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
-			_ProjectFolderPath = String.Empty;
-		}
-	}
-
-	static void SetFolderShortcut(ThemedButton shortcutButton, ref string filePath) {
-		if (String.IsNullOrEmpty(filePath)) {
-			shortcutButton.Visibility = Visibility.Collapsed;
-			filePath ??= String.Empty;
-		}
-		else {
-			shortcutButton.Visibility = Visibility.Visible;
-			filePath = Path.GetDirectoryName(filePath);
-		}
-	}
-
 	#region Event handlers
 	protected override void OnContextMenuOpening(ContextMenuEventArgs e) {
 		base.OnContextMenuOpening(e);
@@ -397,6 +356,47 @@ sealed class FileList : VirtualList
 		}
 	}
 	#endregion
+
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	void UpdateSolutionFolderPath() {
+		_SolutionFolderPath = ServicesHelper.Instance.DTE.Solution.FullName;
+		SetFolderShortcut(_GoToSolutionFolderButton, ref _SolutionFolderPath);
+	}
+
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
+	void UpdateProjectFolderPath(string value) {
+		if (String.IsNullOrEmpty(value)) {
+			_ProjectFolderPath = String.Empty;
+			return;
+		}
+
+		var pi = ServicesHelper.Instance.DTE.Solution.FindProjectItem(value);
+		if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
+			_ProjectFolderPath = value;
+			var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
+			if (icon == IconIds.OtherFile) {
+				icon = IconIds.GoToProjectFolder;
+			}
+			_ProjectIconId = icon;
+			_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
+			SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
+		}
+		else {
+			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
+			_ProjectFolderPath = String.Empty;
+		}
+	}
+
+	static void SetFolderShortcut(ThemedButton shortcutButton, ref string filePath) {
+		if (String.IsNullOrEmpty(filePath)) {
+			shortcutButton.Visibility = Visibility.Collapsed;
+			filePath ??= String.Empty;
+		}
+		else {
+			shortcutButton.Visibility = Visibility.Visible;
+			filePath = Path.GetDirectoryName(filePath);
+		}
+	}
 
 	void ClearFilterBox() {
 		ClearFilter();
@@ -661,7 +661,7 @@ sealed class FileList : VirtualList
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.EventHandler)]
 	void LocateInSolutionExplorer(object sender, RoutedEventArgs args) {
 		if (SelectedItem is FileSystemItem fsi && fsi.IsFile) {
-			var dte = CodistPackage.DTE;
+			var dte = ServicesHelper.Instance.DTE;
 			var projectItem = dte.Solution.FindProjectItem(fsi.FullPath);
 			var parents = new Stack<string>();
 			var current = projectItem;
@@ -896,7 +896,7 @@ sealed class FileList : VirtualList
 			ToggleFolderButton(_GoToProjectFolderButton, _ProjectFolderPath, _ActiveDirPath);
 		}
 		else {
-			CurrentFile = CodistPackage.DTE.Solution.FullName;
+			CurrentFile = ServicesHelper.Instance.DTE.Solution.FullName;
 			await LoadCurrentDirectoryAsync(cancellationToken);
 		}
 		ToggleFolderButton(_GoToSolutionFolderButton, _SolutionFolderPath, _ActiveDirPath);
