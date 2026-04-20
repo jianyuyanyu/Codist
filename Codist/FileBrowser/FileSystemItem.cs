@@ -91,7 +91,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 	public bool IsSolutionItem {
 		get {
 			if (_Type != FileItemType.File) {
-				return false;
+				return true;
 			}
 			if (_IsSolutionItem == 0) {
 				_IsSolutionItem = GetIsSolutionItem();
@@ -152,7 +152,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 			".vcxproj" or ".vcproj" => IconIds.CPPProjectNode,
 			".pyproj" => IconIds.PYProjectNode,
 			".tsproj" or ".esproj" or ".njsproj" => IconIds.TSProjectNode,
-			".sln" => IconIds.VisualStudioFile,
+			".sln" or ".slnx" => IconIds.VisualStudioFile,
 			#endregion
 
 			#region Image & Resource Files

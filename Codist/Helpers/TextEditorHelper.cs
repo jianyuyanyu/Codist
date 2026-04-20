@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Input;
 using CLR;
 using Microsoft.CodeAnalysis;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
@@ -30,7 +31,8 @@ namespace Codist;
 static class TextEditorHelper
 {
 	static /*readonly*/ Guid __IWpfTextViewHostGuid = new Guid("8C40265E-9FDB-4f54-A0FD-EBB72B7D0476"),
-		__ViewKindCodeGuid = new Guid(EnvDTE.Constants.vsViewKindCode);
+		__ViewKindCodeGuid = new Guid(EnvDTE.Constants.vsViewKindCode),
+		__ViewKindPrimaryGuid = new Guid(EnvDTE.Constants.vsViewKindPrimary);
 	static readonly HashSet<IWpfTextView> __WpfTextViews = new HashSet<IWpfTextView>();
 	static IWpfTextView __MouseOverDocumentView, __ActiveDocumentView, __ActiveInteractiveView;
 	static int __ActiveViewPosition;
@@ -530,10 +532,10 @@ static class TextEditorHelper
 	public static void ForgetViewPosition() {
 		__ActiveViewPosition = -1;
 	}
-	public static void OpenFile(string file, bool newWindow = false) {
-		OpenFile(file, (VsTextView _) => { }, newWindow);
+	public static void OpenFile(string file, bool newWindow = false, bool useDesigner = false) {
+		OpenFile(file, (VsTextView _) => { }, newWindow, useDesigner);
 	}
-	public static void OpenFile(string file, Action<VsTextView> action, bool newWindow = false) {
+	public static void OpenFile(string file, Action<VsTextView> action, bool newWindow = false, bool useDesigner = false) {
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (String.IsNullOrEmpty(file)) {
 			return;
@@ -546,14 +548,20 @@ static class TextEditorHelper
 			MoveCaretToKeptViewPosition();
 		}
 
-		InternalOpenFile(file, action, newWindow);
+		InternalOpenFile(file, action, newWindow, useDesigner);
 	}
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
-	static void InternalOpenFile(string file, Action<VsTextView> action, bool newWindow = false) {
+	static void InternalOpenFile(string file, Action<VsTextView> action, bool newWindow = false, bool useDesigner = false) {
 		try {
-			using (new NewDocumentStateScope(newWindow ^ UIHelper.IsShiftDown ? __VSNEWDOCUMENTSTATE.NDS_Unspecified : __VSNEWDOCUMENTSTATE.NDS_Provisional, Microsoft.VisualStudio.VSConstants.NewDocumentStateReason.Navigation)) {
-				VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, file, __ViewKindCodeGuid, out var hierarchy, out var itemId, out var windowFrame, out var view);
+			using (new NewDocumentStateScope(newWindow ^ UIHelper.IsShiftDown, VSConstants.NewDocumentStateReason.Navigation)) {
+				VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider,
+					file,
+					useDesigner ? __ViewKindPrimaryGuid : __ViewKindCodeGuid,
+					out var hierarchy,
+					out var itemId,
+					out var windowFrame,
+					out var view);
 				action?.Invoke(view);
 			}
 		}
@@ -943,6 +951,10 @@ static class TextEditorHelper
 			if (Package.GetGlobalService(typeof(IVsUIShellOpenDocument)) is IVsUIShellOpenDocument3 doc) {
 				_Context = doc.SetNewDocumentState(state, ref reason);
 			}
+		}
+
+		public NewDocumentStateScope(bool newWindow, Guid reason)
+			: this((uint)(newWindow ? __VSNEWDOCUMENTSTATE.NDS_Unspecified : __VSNEWDOCUMENTSTATE.NDS_Provisional), reason) {
 		}
 
 		public NewDocumentStateScope(__VSNEWDOCUMENTSTATE state, Guid reason)

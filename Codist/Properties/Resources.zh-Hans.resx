@@ -3256,4 +3256,12 @@ Shift: 匹配大小写</value>
   <data name="T_FileExplorer" xml:space="preserve">
     <value>文件管理器</value>
   </data>
+  <data name="CMDT_SyncActiveFile" xml:space="preserve">
+    <value>同步当前代码文件
+按下此按钮进入跟踪模式，让文件列表的内容总是跟随正在编辑的代码文件</value>
+  </data>
+  <data name="T_ConfirmLoadSolutionNote" xml:space="preserve">
+    <value>是否确认要加载解决方案 &lt;FILE&gt;？
+未保存的修改将在加载方案前被抛弃。</value>
+  </data>
 </root>

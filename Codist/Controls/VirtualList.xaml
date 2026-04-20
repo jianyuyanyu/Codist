@@ -105,9 +105,6 @@
 				<TextBlock.Style>
 					<Style TargetType="{x:Type TextBlock}">
 						<Style.Triggers>
-							<DataTrigger Binding="{Binding IsSolutionItem}" Value="True">
-								<Setter Property="Foreground" Value="{DynamicResource {x:Static vsp:ThemedDialogColors.HyperlinkBrushKey}}" />
-							</DataTrigger>
 							<DataTrigger Binding="{Binding IsCurrent}" Value="True">
 								<Setter Property="FontWeight" Value="Bold" />
 							</DataTrigger>
@@ -115,6 +112,15 @@
 					</Style>
 				</TextBlock.Style>
 			 </TextBlock>
+			<StackPanel.Style>
+				<Style TargetType="{x:Type StackPanel}">
+					<Style.Triggers>
+						<DataTrigger Binding="{Binding IsSolutionItem}" Value="False">
+							<Setter Property="Opacity" Value="0.6" />
+						</DataTrigger>
+					</Style.Triggers>
+				</Style>
+			</StackPanel.Style>
 		</StackPanel>
 	</DataTemplate>
 	<Style TargetType="ListBoxItem">

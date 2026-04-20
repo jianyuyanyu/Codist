@@ -34,7 +34,7 @@ sealed class FileList : VirtualList
 
 	ObservableCollection<FileSystemItem> _Items;
 	ICollectionView _ItemsView;
-	bool _LockFilter;
+	bool _LockFilter, _TrackActiveFile;
 
 	string _ActiveFilePath, _ActiveDirPath, _SolutionFolderPath, _ProjectFolderPath;
 	int _ProjectIconId;
@@ -93,11 +93,15 @@ sealed class FileList : VirtualList
 			Orientation = Orientation.Horizontal,
 			Margin = WpfHelper.SmallMargin,
 			Children = {
+				new ThemedControlGroup(new ThemedToggleButton(IconIds.MultiSelection, R.CMDT_ToggleMultiSelectionMode, ToggleMultiSelectionMode).ClearSpacing()) {
+					Margin = WpfHelper.GlyphMargin,
+					VerticalAlignment = VerticalAlignment.Center,
+				},
 				new ThemedControlGroup(
 					_FolderFilterButton = new ThemedToggleButton(IconIds.Folder, R.T_Folder, HandleFolderFileFilterChange),
 					_FileFilterButton = new ThemedToggleButton(IconIds.File, R.T_File, HandleFolderFileFilterChange)
 				) {
-					Margin = WpfHelper.MiddleHorizontalMargin,
+					Margin = WpfHelper.GlyphMargin,
 					VerticalAlignment = VerticalAlignment.Center,
 				}
 				.Set(ref _FilterGroup),
@@ -105,29 +109,16 @@ sealed class FileList : VirtualList
 					MinWidth = 120,
 					ToolTip = new ThemedToolTip(R.T_ResultFilter, R.T_ResultFilterTip),
 				}.Set(ref _FilterBox),
-				new Border {
-					BorderThickness = WpfHelper.TinyMargin,
-					CornerRadius = WpfHelper.SmallCorner,
-					Child = new StackPanel {
-						Orientation = Orientation.Horizontal,
-						Children = {
-							new ThemedButton(IconIds.ClearFilter, R.CMD_ClearFilter, ClearFilterBox){ MinHeight = 10 }
-								.ClearSpacing(),
-							new ThemedToggleButton(IconIds.MultiSelection, R.CMDT_ToggleMultiSelectionMode, ToggleMultiSelectionMode).ClearSpacing(),
-							new ThemedButton(IconIds.GoToCurrentFile, R.CMD_BackToCurrentFile, GoToCurrentFile) {
-								MinHeight = 10
-							}.ClearSpacing().Set(ref _GoToCurrentFileButton),
-							new ThemedButton(IconIds.GoToSolutionFolder, R.CMD_GoToSolutionFolder, GoToSolutionFolder) {
-								MinHeight = 10
-							}.ClearSpacing().Set(ref _GoToSolutionFolderButton),
-							new ThemedButton(IconIds.GoToProjectFolder, R.CMD_GoToProjectFolder, GoToProjectFolder) {
-								MinHeight = 10
-							}.ClearSpacing().Set(ref _GoToProjectFolderButton),
-						}
-					}
-				}.ReferenceProperty(Border.BorderBrushProperty, CommonControlsColors.TextBoxBorderBrushKey),
+				new ThemedControlGroup(
+					new ThemedButton(IconIds.ClearFilter, R.CMD_ClearFilter, ClearFilterBox),
+					new ThemedButton(IconIds.GoToCurrentFile, R.CMD_BackToCurrentFile, GoToCurrentFile).Set(ref _GoToCurrentFileButton),
+					new ThemedButton(IconIds.GoToSolutionFolder, R.CMD_GoToSolutionFolder, GoToSolutionFolder).Set(ref _GoToSolutionFolderButton),
+					new ThemedButton(IconIds.GoToProjectFolder, R.CMD_GoToProjectFolder, GoToProjectFolder).Set(ref _GoToProjectFolderButton)
+					) {
+					Margin = WpfHelper.GlyphMargin,
+					VerticalAlignment = VerticalAlignment.Center,
+				},
 				new TextBlock {
-					Margin = WpfHelper.MiddleHorizontalMargin,
 					VerticalAlignment = VerticalAlignment.Center,
 				}.Set(ref _SelectionInfoBlock)
 			}
@@ -137,6 +128,8 @@ sealed class FileList : VirtualList
 		};
 		if (inWindowPane) {
 			Header = commandPanel;
+			((ThemedControlGroup)toolbar.Children[0])
+				.AddRange(new ThemedToggleButton(IconIds.SyncActiveFile, R.CMDT_SyncActiveFile, ToggleSyncMode));
 		}
 		else {
 			Footer = commandPanel;
@@ -284,6 +277,11 @@ sealed class FileList : VirtualList
 			MouseDoubleClick -= HandleMouseDoubleClick;
 			SelectionMode = SelectionMode.Extended;
 		}
+	}
+
+	void ToggleSyncMode(object sender, RoutedEventArgs e) {
+		_TrackActiveFile = ((ThemedToggleButton)sender).IsChecked == true;
+		RefreshCurrentFileAsync(true, default).FireAndForget();
 	}
 
 	void OpenInExplorer(object sender, RoutedEventArgs args) {
@@ -559,6 +557,10 @@ sealed class FileList : VirtualList
 		int startIndex = 0;
 		int length = path.Length;
 
+		if (length == 0) {
+			return;
+		}
+
 		if (path[length - 1] == '\\') {
 			length--;
 		}
@@ -642,11 +644,24 @@ sealed class FileList : VirtualList
 		};
 	}
 
+	#region Commands
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.EventHandler)]
 	void OpenFilesWithVisualStudio(object sender, RoutedEventArgs args) {
-		FileActivated?.Invoke(this, new((FileSystemItem)SelectedItem));
+		var activeItem = (FileSystemItem)SelectedItem;
+		FileActivated?.Invoke(this, new(activeItem));
+		if (activeItem.IsFile
+			&& String.Equals(Path.GetExtension(activeItem.Name), ".sln", StringComparison.OrdinalIgnoreCase)) {
+			if (!String.IsNullOrEmpty(ServicesHelper.Instance.DTE.Solution.FullName)
+				&& MessageWindow.AskYesNo(R.T_ConfirmLoadSolutionNote.Replace("<FILE>", activeItem.Name), Constants.NameOfMe) == false) {
+				return;
+			}
+			ServicesHelper.Instance.DTE.Solution.Open(activeItem.FullPath);
+			return;
+		}
 		var newWindow = false; // preview the first; open others
+		var useDesigner = !UIHelper.IsCtrlDown; // press Ctrl to force code view
 		foreach (var path in SelectedFilePaths) {
-			TextEditorHelper.OpenFile(path, newWindow);
+			TextEditorHelper.OpenFile(path, newWindow, useDesigner);
 			newWindow = true;
 		}
 	}
@@ -870,12 +885,15 @@ sealed class FileList : VirtualList
 			NativeMethods.ShowFileProperties(fsi.FullPath);
 		}
 	}
+	#endregion
 
 	#region Refresh methods for window mode
 	internal Task RefreshSolutionAsync(CancellationToken cancellationToken) {
-		return String.IsNullOrEmpty(_ActiveDirPath)
-			? Task.CompletedTask
-			: InternalRefreshSolutionAsync(cancellationToken);
+		if (String.IsNullOrEmpty(_ActiveDirPath)) {
+			UpdateSolutionFolderPath();
+			return Task.CompletedTask;
+		}
+		return InternalRefreshSolutionAsync(cancellationToken);
 	}
 
 	async Task InternalRefreshSolutionAsync(CancellationToken cancellationToken) {
@@ -917,25 +935,36 @@ sealed class FileList : VirtualList
 		BuildPathNavigator(_ActiveDirPath);
 	}
 
-	internal async Task RefreshCurrentFileAsync(bool solutionJustLoaded, CancellationToken cancellationToken) {
+	internal async Task RefreshCurrentFileAsync(bool forceReload, CancellationToken cancellationToken) {
 		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-		CurrentFile = TextEditorHelper.GetActiveWpfInteractiveView().TextBuffer.GetTextDocument().FilePath;
-		if (solutionJustLoaded || _ActiveDirPath is null) {
+		var newPath = TextEditorHelper.GetActiveWpfInteractiveView().TextBuffer.GetTextDocument().FilePath;
+		FileSystemItem currentItem = null;
+		if (!forceReload && _TrackActiveFile) {
+			forceReload = !String.Equals(CurrentFile, newPath, StringComparison.OrdinalIgnoreCase)
+				&& _ActiveDirPath != Path.GetDirectoryName(newPath);
+		}
+		CurrentFile = newPath;
+		if (forceReload || _ActiveDirPath is null) {
 			_ActiveDirPath ??= Path.GetDirectoryName(CurrentFile);
 			BuildPathNavigator(_ActiveDirPath);
 			await LoadCurrentDirectoryAsync(cancellationToken);
+			currentItem = SelectedItem as FileSystemItem;
 		}
 		else {
 			BuildPathNavigator(_ActiveDirPath);
 			var highlight = GetHighlightName(_ActiveDirPath, _ActiveFilePath);
 			foreach (var item in _Items) {
 				item.RefreshIsSolutionItem();
-				item.IsCurrent = highlight.IsCurrent(item);
+				if (item.IsCurrent = highlight.IsCurrent(item)) {
+					currentItem = item;
+				}
 			}
 		}
-		FileSystemItem fs;
 		_GoToCurrentFileButton.ToggleVisibility(_ActiveFilePath != null
-				&& ((fs = SelectedItem as FileSystemItem) is null || !fs.IsFile || !fs.IsCurrent));
+				&& (currentItem is null || !currentItem.IsFile || !currentItem.IsCurrent));
+		if (_TrackActiveFile && currentItem != null) {
+			ScrollIntoView(currentItem);
+		}
 	}
 	#endregion
 

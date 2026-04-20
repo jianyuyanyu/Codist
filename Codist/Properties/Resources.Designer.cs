@@ -3150,6 +3150,16 @@ namespace Codist.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Synchronize with Active File
+        ///Press down this button to make list synchronized with active code file.
+        /// </summary>
+        internal static string CMDT_SyncActiveFile {
+            get {
+                return ResourceManager.GetString("CMDT_SyncActiveFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Multi-selection Mode
         ///Press down this button to enter multi-selection mode that single clicking on items will toggle their selection, making it easier to select multiple items.
         ///To multi-select items without entering this mode, press Ctrl or Shift key when clicking on items..
@@ -6948,6 +6958,16 @@ namespace Codist.Properties {
         internal static string T_Configuration {
             get {
                 return ResourceManager.GetString("T_Configuration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure to load solution &lt;FILE&gt;?
+        ///Unsaved changes will be discarded before reload..
+        /// </summary>
+        internal static string T_ConfirmLoadSolutionNote {
+            get {
+                return ResourceManager.GetString("T_ConfirmLoadSolutionNote", resourceCulture);
             }
         }
         

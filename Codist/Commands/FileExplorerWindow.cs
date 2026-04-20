@@ -30,9 +30,11 @@ public class FileExplorerWindow : ToolWindowPane
 		var activeFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName ?? ServicesHelper.Instance.DTE.Solution.FullName;
 		Content = _FileList = new FileList(true) {
 			CurrentFile = activeFile,
-			Resources = SharedDictionaryManager.VirtualList
 		};
 		_FileList.LoadCurrentDirectoryAsync(_CancellationTokenSource.Token).FireAndForget();
+
+		_SuppressRefresh = true;
+		_FileList.IsVisibleChanged += HandleVisibilityChange;
 
 		SolutionEvents.OnAfterOpenSolution += HandleAfterOpenSolution;
 		SolutionEvents.OnAfterCloseSolution += HandleAfterCloseSolution;
@@ -40,8 +42,6 @@ public class FileExplorerWindow : ToolWindowPane
 		SolutionEvents.OnAfterLoadProjectBatch += HandleAfterLoadProjects;
 		TextEditorHelper.ActiveTextViewChanged += HandleActiveTextViewChanged;
 		TextEditorHelper.AllTextViewClosed += HandleAllTextViewClosed;
-
-		_FileList.IsVisibleChanged += HandleVisibilityChange;
 	}
 
 	void HandleVisibilityChange(object sender, DependencyPropertyChangedEventArgs e) {
@@ -117,6 +117,9 @@ public class FileExplorerWindow : ToolWindowPane
 	}
 
 	void HandleActiveTextViewChanged(object sender, TextViewCreatedEventArgs e) {
+		if (!e.TextView.Roles.Contains(PredefinedTextViewRoles.PrimaryDocument)) {
+			return;
+		}
 		if (_SuppressRefresh) {
 			_PendingRefresh |= PendingRefresh.File;
 			return;
