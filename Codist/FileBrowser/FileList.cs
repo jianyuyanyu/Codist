@@ -634,18 +634,11 @@ sealed class FileList : VirtualList
 		_ItemsView.Filter = item => {
 			if (item is not FileSystemItem fsi) return false;
 
-			if (fs == FILES && !fsi.IsFile) return false;
-			if (fs == FOLDERS && fsi.IsFile) return false;
+			var isFile = fsi.IsFile;
+			if (fs == FILES && !isFile) return false;
+			if (fs == FOLDERS && isFile) return false;
 
-			if (keywords.Length > 0) {
-				foreach (var keyword in keywords) {
-					if (fsi.Name.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0) {
-						return false;
-					}
-				}
-			}
-
-			return true;
+			return fsi.Name.ContainsWords(keywords);
 		};
 	}
 
