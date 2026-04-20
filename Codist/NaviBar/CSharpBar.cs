@@ -378,7 +378,7 @@ public sealed partial class CSharpBar : NaviBar
 		}
 		_ActiveItem = barItem;
 		barItem.IsHighlighted = true;
-		menu.ItemsControlMaxHeight = ViewOverlay.DisplayHeight / 2;
+		menu.MaxHeight = ViewOverlay.DisplayHeight * 0.75;
 		menu.RefreshItemsSource();
 		menu.ScrollToSelectedItem();
 		menu.PreviewKeyUp -= OnMenuKeyUp;

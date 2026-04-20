@@ -54,7 +54,6 @@ sealed partial class FolderMargin : IWpfTextViewMargin
 				AllowsTransparency = true,
 				StaysOpen = false,
 				Focusable = true,
-				Resources = SharedDictionaryManager.VirtualList,
 				MaxHeight = 600,
 				Child = _FileList = new FileList()
 			};

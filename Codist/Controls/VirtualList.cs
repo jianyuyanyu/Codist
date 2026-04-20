@@ -13,7 +13,6 @@ namespace Codist.Controls
 		public static readonly DependencyProperty HeaderProperty = DependencyProperty.Register("Header", typeof(UIElement), typeof(VirtualList));
 		public static readonly DependencyProperty HeaderButtonsProperty = DependencyProperty.Register("HeaderButtons", typeof(UIElement), typeof(VirtualList));
 		public static readonly DependencyProperty FooterProperty = DependencyProperty.Register("Footer", typeof(UIElement), typeof(VirtualList));
-		public static readonly DependencyProperty ItemsControlMaxHeightProperty = DependencyProperty.Register("ItemsControlMaxHeight", typeof(double), typeof(VirtualList));
 
 		public VirtualList() {
 			#region enable virtualization by default
@@ -22,7 +21,6 @@ namespace Codist.Controls
 			ScrollViewer.SetCanContentScroll(this, true);
 			#endregion
 
-			ItemsControlMaxHeight = 500;
 			HorizontalContentAlignment = HorizontalAlignment.Stretch;
 			Resources = SharedDictionaryManager.VirtualList;
 			this.ReferenceCrispImageBackground(EnvironmentColors.MainWindowActiveCaptionColorKey);
@@ -39,10 +37,6 @@ namespace Codist.Controls
 		public UIElement Footer {
 			get => GetValue(FooterProperty) as UIElement;
 			set => SetValue(FooterProperty, value);
-		}
-		public double ItemsControlMaxHeight {
-			get => (double)GetValue(ItemsControlMaxHeightProperty);
-			set => SetValue(ItemsControlMaxHeightProperty, value);
 		}
 		public ListCollectionView FilteredItems { get; set; }
 		public FrameworkElement Container { get; set; }
