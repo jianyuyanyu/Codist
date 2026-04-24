@@ -48,6 +48,7 @@ public class FileExplorerWindow : ToolWindowPane
 		var currentFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName
 			?? ServicesHelper.Instance.DTE.Solution.FullName;
 		if (!FileHelper.AreFileNamesEqual(currentFile, _FileList.CurrentFile)) {
+			_FileList.CurrentFile = currentFile;
 			_FileList.LoadCurrentDirectoryAsync(_CancellationTokenSource.Token).FireAndForget();
 		}
 	}
