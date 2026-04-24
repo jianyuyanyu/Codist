@@ -134,13 +134,13 @@ class SymbolList : VirtualList, ISymbolFilterable, INotifyCollectionChanged
 				? items[0] as SymbolItem
 				: SelectedItem as SymbolItem;
 			if (item != null) {
-				GoToSource(item, this);
+				GoToSource(item);
 			}
 			e.Handled = true;
 		}
 
 		[SuppressMessage("Usage", Suppression.VSTHRD100, Justification = Suppression.EventHandler)]
-		async void GoToSource(SymbolItem i, SymbolList me) {
+		async void GoToSource(SymbolItem i) {
 			try {
 				await i.GoToSourceAsync();
 			}
