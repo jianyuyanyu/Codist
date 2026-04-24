@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
-using CLR;
 using Codist.FileBrowser;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Events;
@@ -19,129 +18,66 @@ public class FileExplorerWindow : ToolWindowPane
 	internal static readonly Guid WindowGuid = new(WindowGuidString);
 
 	FileList _FileList;
-	bool _SolutionJustLoaded, _SuppressRefresh;
-	PendingRefresh _PendingRefresh;
+	bool _SolutionJustLoaded;
 
 	CancellationTokenSource _CancellationTokenSource = new();
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	public FileExplorerWindow() : base(null) {
 		Caption = R.T_FileExplorer;
-		var activeFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName ?? ServicesHelper.Instance.DTE.Solution.FullName;
-		Content = _FileList = new FileList(true) {
-			CurrentFile = activeFile,
-		};
-		_FileList.LoadCurrentDirectoryAsync(_CancellationTokenSource.Token).FireAndForget();
-
-		_SuppressRefresh = true;
+		Content = _FileList = new FileList(true);
 		_FileList.IsVisibleChanged += HandleVisibilityChange;
+	}
+
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.EventHandler)]
+	void HandleVisibilityChange(object sender, DependencyPropertyChangedEventArgs e) {
+		if (!(bool)e.NewValue) {
+			SolutionEvents.OnAfterOpenSolution -= HandleAfterOpenSolution;
+			SolutionEvents.OnAfterCloseSolution -= HandleAfterCloseSolution;
+			SolutionEvents.OnAfterLoadProjectBatch -= HandleAfterLoadProjects;
+			TextEditorHelper.ActiveTextViewChanged -= HandleActiveTextViewChanged;
+			TextEditorHelper.AllTextViewClosed -= HandleAllTextViewClosed;
+			return;
+		}
 
 		SolutionEvents.OnAfterOpenSolution += HandleAfterOpenSolution;
 		SolutionEvents.OnAfterCloseSolution += HandleAfterCloseSolution;
-		SolutionEvents.OnAfterLoadProject += HandleAfterLoadProject;
 		SolutionEvents.OnAfterLoadProjectBatch += HandleAfterLoadProjects;
 		TextEditorHelper.ActiveTextViewChanged += HandleActiveTextViewChanged;
 		TextEditorHelper.AllTextViewClosed += HandleAllTextViewClosed;
-	}
-
-	void HandleVisibilityChange(object sender, DependencyPropertyChangedEventArgs e) {
-		if (!(bool)e.NewValue) {
-			_SuppressRefresh = true;
-			return;
+		var currentFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName
+			?? ServicesHelper.Instance.DTE.Solution.FullName;
+		if (!FileHelper.AreFileNamesEqual(currentFile, _FileList.CurrentFile)) {
+			_FileList.LoadCurrentDirectoryAsync(_CancellationTokenSource.Token).FireAndForget();
 		}
-
-		_SuppressRefresh = false;
-		if (_PendingRefresh == 0) {
-			return;
-		}
-		var r = _PendingRefresh;
-		if (r.MatchFlags(PendingRefresh.ClearFile)) {
-			HandleAllTextViewClosed(null, EventArgs.Empty);
-		}
-		if (r.MatchFlags(PendingRefresh.ClearSolution)) {
-			HandleAfterCloseSolution(null, EventArgs.Empty);
-		}
-		if (r.MatchFlags(PendingRefresh.Solution)) {
-			HandleAfterOpenSolution(null, EventArgs.Empty);
-		}
-		if (r.MatchFlags(PendingRefresh.Project)) {
-			HandleAfterLoadProjects(null, new(false));
-		}
-		if (r.MatchFlags(PendingRefresh.File)) {
-			_FileList.RefreshCurrentFileAsync(_SolutionJustLoaded, SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
-			_SolutionJustLoaded = false;
-		}
-		_PendingRefresh = 0;
 	}
 
 	void HandleAllTextViewClosed(object sender, EventArgs e) {
-		if (_SuppressRefresh) {
-			_PendingRefresh |= PendingRefresh.ClearFile;
-			_PendingRefresh = _PendingRefresh.SetFlags(PendingRefresh.File, false);
-			return;
-		}
-		_FileList.ClearCurrentFile();
-		"All text view closed".Log();
+		_FileList.ClearCurrentFileAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
 	}
 
 	void HandleAfterOpenSolution(object sender, EventArgs e) {
-		if (_SuppressRefresh) {
-			_PendingRefresh |= PendingRefresh.Solution;
-			return;
-		}
 		_SolutionJustLoaded = true;
 		_FileList.RefreshSolutionAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
-		"Open solution".Log();
 	}
 
 	void HandleAfterCloseSolution(object sender, EventArgs e) {
-		if (_SuppressRefresh) {
-			_PendingRefresh |= PendingRefresh.ClearSolution;
-			_PendingRefresh = _PendingRefresh.SetFlags(PendingRefresh.Solution | PendingRefresh.Project | PendingRefresh.File, false);
-			return;
-		}
 		_FileList.RefreshSolutionAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
-		"Close solution".Log();
-	}
-
-	void HandleAfterLoadProject(object sender, LoadProjectEventArgs e) {
-		$"Load project".Log();
 	}
 	void HandleAfterLoadProjects(object sender, LoadProjectBatchEventArgs e) {
-		if (_SuppressRefresh) {
-			_PendingRefresh |= PendingRefresh.Project;
-			return;
-		}
 		_FileList.RefreshProjectAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
-		"Load projects".Log();
 	}
 
 	void HandleActiveTextViewChanged(object sender, TextViewCreatedEventArgs e) {
 		if (!e.TextView.Roles.Contains(PredefinedTextViewRoles.PrimaryDocument)) {
 			return;
 		}
-		if (_SuppressRefresh) {
-			_PendingRefresh |= PendingRefresh.File;
-			return;
-		}
 		_FileList.RefreshCurrentFileAsync(_SolutionJustLoaded, SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
-		$"Active file {e.TextView.TextBuffer.GetTextDocument().FilePath}".Log();
 		_SolutionJustLoaded = false;
 	}
 
 	protected override void Dispose(bool disposing) {
 		base.Dispose(disposing);
 		_CancellationTokenSource.CancelAndDispose();
-	}
-
-	[Flags]
-	enum PendingRefresh
-	{
-		None,
-		Solution = 1,
-		Project = 2,
-		File = 4,
-		ClearFile = 8,
-		ClearSolution = 16,
 	}
 }
