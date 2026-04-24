@@ -7,7 +7,7 @@ using Task = System.Threading.Tasks.Task;
 namespace Codist.Commands;
 
 /// <summary>
-/// Command handler
+/// Command handler to display a window pane that list file system contents
 /// </summary>
 internal sealed class FileExplorerWindowCommand
 {
@@ -50,9 +50,8 @@ internal sealed class FileExplorerWindowCommand
 				throw new NotSupportedException("Cannot create tool window");
 			}
 
-			await _Package.JoinableTaskFactory.SwitchToMainThreadAsync();
-			IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-			Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
+			await _Package.JoinableTaskFactory.SwitchToMainThreadAsync(_Package.DisposalToken);
+			Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
 		}).FileAndForget(nameof(FileExplorerWindowCommand));
 	}
 }
