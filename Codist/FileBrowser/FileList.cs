@@ -34,12 +34,11 @@ sealed class FileList : VirtualList
 
 	ObservableCollection<FileSystemItem> _Items;
 	ICollectionView _ItemsView;
-	bool _LockFilter, _TrackActiveFile;
+	bool _LockFilter, _TrackActiveFile, _FilterGroupIsHidden;
 
 	string _ActiveFilePath, _ActiveDirPath, _SolutionFolderPath, _ProjectFolderPath;
 	int _ProjectIconId;
 
-	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	public FileList(bool inWindowPane = false) {
 		MaxWidth = 600;
 		BorderThickness = WpfHelper.NoMargin;
@@ -168,6 +167,15 @@ sealed class FileList : VirtualList
 			ThreadHelper.ThrowIfNotOnUIThread();
 			_ActiveFilePath = value;
 			UpdateProjectFolderPath(value);
+		}
+	}
+
+	public bool HideFilterGroup {
+		get => _FilterGroupIsHidden;
+		set {
+			if (_FilterGroupIsHidden != value) {
+				_FilterGroup.ToggleVisibility(!(_FilterGroupIsHidden = value));
+			}
 		}
 	}
 
@@ -300,7 +308,7 @@ sealed class FileList : VirtualList
 		if (String.IsNullOrEmpty(directory)) {
 			return;
 		}
-		LoadCurrentDirectoryAsync(directory, default).FireAndForget();
+		NavigateToDirectoryAsync(directory).FireAndForget();
 	}
 
 	void GoToSolutionFolder(object sender, RoutedEventArgs args) {
@@ -355,6 +363,64 @@ sealed class FileList : VirtualList
 	}
 	#endregion
 
+	public void InitCurrentFile() {
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (_ActiveFilePath != null) {
+			return;
+		}
+		var doc = ServicesHelper.Instance.DTE.ActiveDocument;
+		_ActiveFilePath = doc.FullName;
+		UpdateProjectStatus(doc.ProjectItem.ContainingProject);
+	}
+
+	public void ListSolutionAndProjects() {
+		ThreadHelper.ThrowIfNotOnUIThread();
+		HideFilterGroup = true;
+		var solution = ServicesHelper.Instance.DTE.Solution;
+		var projects = solution.Projects;
+		SetFolderShortcut(_GoToSolutionFolderButton, ref _SolutionFolderPath);
+		_Items?.Clear();
+		var (dir, file) = FileHelper.DeconstructPath(solution.FullName, true);
+		var items = new List<FileSystemItem>(projects.Count + 1) {
+			new(new DirectoryInfo(_SolutionFolderPath = dir), file)
+		};
+		foreach (EnvDTE.Project project in projects) {
+			switch (project.Kind) {
+				case VsShellHelper.MiscKind:
+					continue;
+				case VsShellHelper.ProjectFolderKind:
+					AddProjectItems(project.ProjectItems, items);
+					continue;
+				default: {
+					var path = project.UniqueName;
+					if (String.IsNullOrEmpty(path)) {
+						continue;
+					}
+					path = Path.Combine(_SolutionFolderPath, path);
+					(dir, file) = FileHelper.DeconstructPath(path, true);
+					items.Add(new(new DirectoryInfo(dir), file));
+					break;
+				}
+			}
+		}
+		_Items = new ObservableCollection<FileSystemItem>(items);
+		ItemsSource = _ItemsView = CollectionViewSource.GetDefaultView(_Items);
+	}
+
+	void AddProjectItems(EnvDTE.ProjectItems projectItems, List<FileSystemItem> items) {
+		foreach (var item in projectItems) {
+			if (item is EnvDTE.ProjectItem project) {
+				var path = project.SubProject?.UniqueName;
+				if (String.IsNullOrEmpty(path)) {
+					continue;
+				}
+				path = Path.Combine(_SolutionFolderPath, path);
+				var (dir, file) = FileHelper.DeconstructPath(path, true);
+				items.Add(new(new DirectoryInfo(dir), file));
+			}
+		}
+	}
+
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	void UpdateSolutionFolderPath() {
 		_SolutionFolderPath = ServicesHelper.Instance.DTE.Solution.FullName;
@@ -365,24 +431,29 @@ sealed class FileList : VirtualList
 	void UpdateProjectFolderPath(string value) {
 		if (String.IsNullOrEmpty(value)) {
 			_ProjectFolderPath = String.Empty;
+			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
+			return;
+		}
+		UpdateProjectStatus(ServicesHelper.Instance.DTE.Solution.FindProjectItem(value)?.ContainingProject);
+	}
+
+	void UpdateProjectStatus(EnvDTE.Project project) {
+		ThreadHelper.ThrowIfNotOnUIThread();
+		string projectPath;
+		if (project == null || String.IsNullOrEmpty(projectPath = project.FullName)) {
+			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
+			_ProjectFolderPath = String.Empty;
 			return;
 		}
 
-		var pi = ServicesHelper.Instance.DTE.Solution.FindProjectItem(value);
-		if (pi != null && !String.IsNullOrEmpty(value = pi.ContainingProject?.FullName)) {
-			_ProjectFolderPath = value;
-			var icon = FileSystemItem.GetFileIconId(Path.GetExtension(value));
-			if (icon == IconIds.OtherFile) {
-				icon = IconIds.GoToProjectFolder;
-			}
-			_ProjectIconId = icon;
-			_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
-			SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
+		_ProjectFolderPath = projectPath;
+		var icon = FileSystemItem.GetFileIconId(Path.GetExtension(projectPath));
+		if (icon == IconIds.OtherFile) {
+			icon = IconIds.GoToProjectFolder;
 		}
-		else {
-			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
-			_ProjectFolderPath = String.Empty;
-		}
+		_ProjectIconId = icon;
+		_GoToProjectFolderButton.Content = VsImageHelper.GetImage(icon);
+		SetFolderShortcut(_GoToProjectFolderButton, ref _ProjectFolderPath);
 	}
 
 	static void SetFolderShortcut(ThemedButton shortcutButton, ref string filePath) {
@@ -423,10 +494,10 @@ sealed class FileList : VirtualList
 		}
 	}
 
-	async Task NavigateToDirectoryAsync(string directoryPath) {
+	async Task NavigateToDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default) {
 		SetCurrentDir(directoryPath);
 
-		await LoadDirectoryAsync(_ActiveDirPath, default);
+		await LoadDirectoryAsync(_ActiveDirPath, cancellationToken);
 		FileSystemItem fs;
 		_GoToCurrentFileButton.ToggleVisibility(_ActiveFilePath != null
 			&& ((fs = SelectedItem as FileSystemItem) is null || !fs.IsFile || !fs.IsCurrent));
@@ -467,6 +538,18 @@ sealed class FileList : VirtualList
 		_GoToCurrentFileButton.ToggleVisibility(false);
 		ToggleFolderButton(_GoToSolutionFolderButton, _SolutionFolderPath, directory);
 		Focus();
+	}
+
+	public Task LoadSolutionDirectoryAsync(CancellationToken cancellationToken = default) {
+		return String.IsNullOrEmpty(_SolutionFolderPath)
+			? Task.CompletedTask
+			: NavigateToDirectoryAsync(_SolutionFolderPath, cancellationToken);
+	}
+
+	public Task LoadCurrentProjectDirectoryAsync(CancellationToken cancellationToken = default) {
+		return String.IsNullOrEmpty(_ProjectFolderPath)
+			? Task.CompletedTask
+			: NavigateToDirectoryAsync(_ProjectFolderPath, cancellationToken);
 	}
 
 	static void ToggleFolderButton(ThemedButton folderButton, string folderPath, string directory) {
@@ -530,7 +613,7 @@ sealed class FileList : VirtualList
 		return (items, dirs.Length, files.Length);
 	}
 
-	static HighlightItem GetHighlightName(string directory, string highlightFilePath) {
+	static HighlightCondition GetHighlightName(string directory, string highlightFilePath) {
 		if (String.IsNullOrEmpty(highlightFilePath) ||
 			!highlightFilePath.StartsWith(directory, StringComparison.OrdinalIgnoreCase)) {
 			return default;
@@ -541,8 +624,8 @@ sealed class FileList : VirtualList
 		}
 		int slashIndex = relativePath.IndexOf('\\');
 		return slashIndex == -1
-			? new HighlightItem(true, relativePath)
-			: new HighlightItem(false, relativePath.Substring(0, slashIndex));
+			? new HighlightCondition(true, relativePath)
+			: new HighlightCondition(false, relativePath.Substring(0, slashIndex));
 	}
 
 	void BuildPathNavigator(string path) {
@@ -626,7 +709,9 @@ sealed class FileList : VirtualList
 			return;
 		}
 		var keywords = _FilterBox.Text.Split([' '], StringSplitOptions.RemoveEmptyEntries);
-		var fs = _FolderFilterButton.IsChecked == true ? FOLDERS : _FileFilterButton.IsChecked == true ? FILES : ALL;
+		var fs = _FolderFilterButton.IsChecked == true ? FOLDERS
+			: _FileFilterButton.IsChecked == true ? FILES
+			: ALL;
 
 		if (fs == ALL && keywords.Length == 0) {
 			_ItemsView.Filter = null;
@@ -914,8 +999,9 @@ sealed class FileList : VirtualList
 		BuildPathNavigator(_ActiveDirPath);
 	}
 
-	internal void ClearCurrentFile() {
+	internal async Task ClearCurrentFileAsync(CancellationToken cancellationToken) {
 		CurrentFile = null;
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 		foreach (var item in _Items) {
 			item.ClearIsCurrent();
 		}
@@ -968,7 +1054,7 @@ sealed class FileList : VirtualList
 	}
 	#endregion
 
-	readonly struct HighlightItem(bool isFile, string name)
+	readonly struct HighlightCondition(bool isFile, string name)
 	{
 		public readonly bool IsFile = isFile;
 		public readonly string Name = name;

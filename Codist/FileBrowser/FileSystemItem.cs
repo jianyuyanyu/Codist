@@ -11,6 +11,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 {
 	readonly FileSystemInfo _Info;
 	readonly FileItemType _Type;
+	readonly string _Name;
 	bool _IsCurrent;
 	FrameworkElement _Icon;
 	SolutionItemInfo _IsSolutionItem;
@@ -21,7 +22,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 
 	public event PropertyChangedEventHandler PropertyChanged;
 
-	public string Name => _Info.Name;
+	public string Name => _Name;
 	public string FullPath => _Info.FullName;
 	public FileItemType Type => _Type;
 	public bool IsEmptyFolder => _Type == FileItemType.EmptyFolder;
@@ -41,7 +42,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 		FileItemType.Folder => IconIds.Folder,
 		FileItemType.EmptyFolder => IconIds.EmptyFolder,
 		FileItemType.InaccessibleFolder => IconIds.InaccessibleFolder,
-		_ => GetFileIconId(_Info.Extension)
+		_ => GetFileIconId(Path.GetExtension(_Name))
 	});
 
 	public long FileSize {
@@ -101,14 +102,17 @@ sealed class FileSystemItem : INotifyPropertyChanged
 	}
 
 	public FileSystemItem(FileInfo fileInfo, bool isCurrent) {
-		(_Info, _Type, _IsCurrent) = (fileInfo, FileItemType.File, isCurrent);
+		(_Info, _Type, _IsCurrent, _Name) = (fileInfo, FileItemType.File, isCurrent, fileInfo.Name);
 	}
 
-	public FileSystemItem(DirectoryInfo parentDirInfo, bool isEmpty, bool isCurrent) {
-		(_Info, _Type, _IsCurrent) = (parentDirInfo, isEmpty ? FileItemType.Folder : FileItemType.EmptyFolder, isCurrent);
+	public FileSystemItem(DirectoryInfo dirInfo, bool isEmpty, bool isCurrent) {
+		(_Info, _Type, _IsCurrent, _Name) = (dirInfo, isEmpty ? FileItemType.Folder : FileItemType.EmptyFolder, isCurrent, dirInfo.Name);
 	}
-	public FileSystemItem(DirectoryInfo parentDirInfo, FileItemType type) {
-		(_Info, _Type) = (parentDirInfo, type);
+	public FileSystemItem(DirectoryInfo dirInfo, FileItemType type) {
+		(_Info, _Type, _Name) = (dirInfo, type, dirInfo.Name);
+	}
+	public FileSystemItem(DirectoryInfo dirInfo, string alias) {
+		(_Info, _Type, _Name, _Icon) = (dirInfo, FileItemType.Folder, Path.GetFileNameWithoutExtension(alias), VsImageHelper.GetImage(GetFileIconId(Path.GetExtension(alias))));
 	}
 
 	public static int GetFileIconId(string extName) {

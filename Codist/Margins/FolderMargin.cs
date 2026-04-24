@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Codist.Controls;
@@ -14,74 +16,141 @@ sealed partial class FolderMargin : IWpfTextViewMargin
 {
 	internal const string Name = nameof(FolderMargin);
 
-	readonly ThemedToggleButton _Button;
+	readonly StackPanel _Container;
+	readonly ThemedToggleButton _FileButton;
+	readonly ThemedToggleButton _SolutionButton;
+	ThemedToggleButton _ProjectButton;
 	readonly IWpfTextView _View;
-	Popup _Popup;
+	Popup _FilePopup;
 	FileList _FileList;
 	CancellationTokenSource _CancellationTokenSource;
 
-	public FrameworkElement VisualElement => _Button;
-	public double MarginSize => _Button.RenderSize.Height;
+	public FrameworkElement VisualElement => _Container;
+	public double MarginSize => _FileButton.RenderSize.Height;
 	public bool Enabled => true;
 
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]
 	public FolderMargin(IWpfTextView view) {
-		_Button = new ThemedToggleButton(IconIds.Folder, R.CMDT_ClickToViewFolder, OnClick) {
-			BorderThickness = WpfHelper.NoMargin,
+		_Container = new StackPanel {
+			Orientation = Orientation.Horizontal,
 			Resources = SharedDictionaryManager.ThemedControls,
-			Background = Brushes.Transparent,
 			VerticalAlignment = VerticalAlignment.Center,
 			Margin = WpfHelper.SmallHorizontalMargin,
+		};
+		if (!String.IsNullOrEmpty(ServicesHelper.Instance.DTE.Solution.FullName)) {
+			_SolutionButton = new ThemedToggleButton(IconIds.GoToSolutionFolder, R.CMD_GoToSolutionFolder, OnSolutionClick) {
+				BorderThickness = WpfHelper.NoMargin,
+				Background = Brushes.Transparent,
+				Padding = WpfHelper.TinyMargin,
+				MinHeight = 10,
+			};
+			_Container.Add(_SolutionButton);
+			_Container.Loaded += AddProjectButtonOnLoaded;
+		}
+		_FileButton = new ThemedToggleButton(IconIds.Folder, R.CMDT_ClickToViewFolder, OnFolderClick) {
+			BorderThickness = WpfHelper.NoMargin,
+			Background = Brushes.Transparent,
 			Padding = WpfHelper.TinyMargin,
 			MinHeight = 10
 		};
+		_Container.Add(_FileButton);
 		_View = view;
 	}
 
-	void OnClick(object sender, RoutedEventArgs args) {
-		if (_Button.IsChecked != true) {
+	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.EventHandler)]
+	void AddProjectButtonOnLoaded(object sender, RoutedEventArgs e) {
+		_Container.Loaded -= AddProjectButtonOnLoaded;
+		var project = ServicesHelper.Instance.DTE.ActiveDocument?.ProjectItem?.ContainingProject;
+		if (project?.IsMiscOrProjectFolder() != false) {
 			return;
 		}
+		_ProjectButton = new ThemedToggleButton(FileSystemItem.GetFileIconId(System.IO.Path.GetExtension(project.UniqueName)), R.CMD_GoToProjectFolder, OnProjectClick) {
+			BorderThickness = WpfHelper.NoMargin,
+			Background = Brushes.Transparent,
+			Padding = WpfHelper.TinyMargin,
+			MinHeight = 10,
+		};
+		_Container.Children.Insert(_Container.Children.Count - 1, _ProjectButton);
+	}
+
+	void OnSolutionClick(object sender, RoutedEventArgs e) {
+		if (_SolutionButton.IsChecked != true) {
+			return;
+		}
+		_FileButton.IsChecked = false;
+		_ProjectButton?.IsChecked = false;
+		CreateFilePopup();
+		_FileList.InitCurrentFile();
+		_FileList.LoadSolutionDirectoryAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
+		_FilePopup.IsOpen = true;
+	}
+
+	void OnProjectClick(object sender, RoutedEventArgs e) {
+		if (_ProjectButton.IsChecked != true) {
+			return;
+		}
+		_SolutionButton?.IsChecked = false;
+		_FileButton?.IsChecked = false;
+		CreateFilePopup();
+		_FileList.InitCurrentFile();
+		_FileList.LoadCurrentProjectDirectoryAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
+		_FilePopup.IsOpen = true;
+	}
+
+	void OnFolderClick(object sender, RoutedEventArgs args) {
+		if (_FileButton.IsChecked != true) {
+			return;
+		}
+		_SolutionButton?.IsChecked = false;
+		_ProjectButton?.IsChecked = false;
 		var path = _View.TextBuffer.GetTextDocument().FilePath;
-		var (folder, curFile) = FileHelper.DeconstructPath(path, true);
+		var (folder, _) = FileHelper.DeconstructPath(path, true);
 		if (String.IsNullOrEmpty(folder)) {
-			_Button.IsChecked = false;
+			_FileButton.IsChecked = false;
 			return;
 		}
-		if (_Popup == null) {
-			_Popup = new Popup {
-				PlacementTarget = _Button,
-				Placement = PlacementMode.Top,
-				AllowsTransparency = true,
-				StaysOpen = false,
-				Focusable = true,
-				MaxHeight = 600,
-				Child = _FileList = new FileList()
-			};
-			_Popup.Closed += Popup_Closed;
-			KeystrokeThief.Bind(_Popup);
-		}
+		CreateFilePopup();
 		_FileList.CurrentFile = path;
 		_FileList.LoadCurrentDirectoryAsync(folder, SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
+		_FilePopup.IsOpen = true;
+	}
+
+	void CreateFilePopup() {
+		if (_FilePopup != null) {
+			return;
+		}
+		_FilePopup = new Popup {
+			PlacementTarget = _Container,
+			Placement = PlacementMode.Top,
+			AllowsTransparency = true,
+			StaysOpen = false,
+			Focusable = true,
+			MaxHeight = 600,
+			Child = _FileList = new FileList()
+		};
+		_FilePopup.Closed += Popup_Closed;
+		KeystrokeThief.Bind(_FilePopup);
 		_FileList.FileActivated += HandleFileActivation;
-		_Popup.IsOpen = true;
 	}
 
 	void HandleFileActivation(object sender, EventArgs<FileSystemItem> e) {
-		_Popup.IsOpen = false;
+		_FilePopup.IsOpen = false;
 		if (e.Data.IsCurrent) {
 			_View.VisualElement.Focus();
 		}
 	}
 
 	void Popup_Closed(object sender, EventArgs e) {
-		_Button.IsChecked = false;
+		_FileButton.IsChecked = false;
+		_SolutionButton?.IsChecked = false;
+		_ProjectButton?.IsChecked = false;
 	}
 
 	public void Dispose() {
 		_CancellationTokenSource.CancelAndDispose();
 	}
 
-	public ITextViewMargin GetTextViewMargin(string marginName) {
+	ITextViewMargin ITextViewMargin.GetTextViewMargin(string marginName) {
 		return marginName == Name ? this : null;
 	}
 
