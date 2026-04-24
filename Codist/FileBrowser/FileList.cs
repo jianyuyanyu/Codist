@@ -288,8 +288,9 @@ sealed class FileList : VirtualList
 	}
 
 	void ToggleSyncMode(object sender, RoutedEventArgs e) {
-		_TrackActiveFile = ((ThemedToggleButton)sender).IsChecked == true;
-		RefreshCurrentFileAsync(true, default).FireAndForget();
+		if (_TrackActiveFile = ((ThemedToggleButton)sender).IsChecked == true) {
+			RefreshCurrentFileAsync(true, default).FireAndForget();
+		}
 	}
 
 	void OpenInExplorer(object sender, RoutedEventArgs args) {
