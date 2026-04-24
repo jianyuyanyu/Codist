@@ -470,7 +470,7 @@ sealed class FileList : VirtualList
 	}
 
 	static void ToggleFolderButton(ThemedButton folderButton, string folderPath, string directory) {
-		folderButton.ToggleVisibility(folderPath.Length != 0 && !directory.Equals(folderPath, StringComparison.OrdinalIgnoreCase));
+		folderButton.ToggleVisibility(folderPath.Length != 0 && !FileHelper.AreFileNamesEqual(directory, folderPath));
 	}
 
 	Task LoadDirectoryAsync(string directoryPath, CancellationToken cancellationToken) {
@@ -650,7 +650,7 @@ sealed class FileList : VirtualList
 		var activeItem = (FileSystemItem)SelectedItem;
 		FileActivated?.Invoke(this, new(activeItem));
 		if (activeItem.IsFile
-			&& String.Equals(Path.GetExtension(activeItem.Name), ".sln", StringComparison.OrdinalIgnoreCase)) {
+			&& (FileHelper.HasAnyExtension(activeItem.Name, "sln", "slnx"))) {
 			if (!String.IsNullOrEmpty(ServicesHelper.Instance.DTE.Solution.FullName)
 				&& MessageWindow.AskYesNo(R.T_ConfirmLoadSolutionNote.Replace("<FILE>", activeItem.Name), Constants.NameOfMe) == false) {
 				return;
@@ -843,10 +843,10 @@ sealed class FileList : VirtualList
 
 		newText = newText.Trim();
 
-		if (string.IsNullOrWhiteSpace(newText) || newText.Equals(fsi.Name, StringComparison.OrdinalIgnoreCase)) {
+		if (string.IsNullOrWhiteSpace(newText) || FileHelper.AreFileNamesEqual(newText, fsi.Name)) {
 			return;
 		}
-		if (newText.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) {
+		if (FileHelper.ContainsInvalidFileNameCharacter(newText)) {
 			MessageWindow.Error(R.T_InvalidFileName, R.T_FailedToRename);
 			return;
 		}
@@ -862,7 +862,7 @@ sealed class FileList : VirtualList
 
 		if (!String.IsNullOrEmpty(_ActiveFilePath)) {
 			var oldPath = fsi.FullPath;
-			if (String.Equals(_ActiveFilePath, oldPath, StringComparison.OrdinalIgnoreCase)) {
+			if (FileHelper.AreFileNamesEqual(_ActiveFilePath, oldPath)) {
 				// current file renamed
 				_ActiveFilePath = newPath;
 			}
@@ -940,7 +940,7 @@ sealed class FileList : VirtualList
 		var newPath = TextEditorHelper.GetActiveWpfInteractiveView().TextBuffer.GetTextDocument().FilePath;
 		FileSystemItem currentItem = null;
 		if (!forceReload && _TrackActiveFile) {
-			forceReload = !String.Equals(CurrentFile, newPath, StringComparison.OrdinalIgnoreCase)
+			forceReload = !FileHelper.AreFileNamesEqual(CurrentFile, newPath)
 				&& _ActiveDirPath != Path.GetDirectoryName(newPath);
 		}
 		CurrentFile = newPath;
@@ -974,13 +974,13 @@ sealed class FileList : VirtualList
 		public readonly string Name = name;
 
 		public bool IsCurrent(DirectoryInfo dir) {
-			return !IsFile && String.Equals(Name, dir.Name, StringComparison.OrdinalIgnoreCase);
+			return !IsFile && FileHelper.AreFileNamesEqual(Name, dir.Name);
 		}
 		public bool IsCurrent(FileInfo file) {
-			return IsFile && String.Equals(Name, file.Name, StringComparison.OrdinalIgnoreCase);
+			return IsFile && FileHelper.AreFileNamesEqual(Name, file.Name);
 		}
 		public bool IsCurrent(FileSystemItem item) {
-			return IsFile == item.IsFile && String.Equals(Name, item.Name, StringComparison.OrdinalIgnoreCase);
+			return IsFile == item.IsFile && FileHelper.AreFileNamesEqual(Name, item.Name);
 		}
 	}
 

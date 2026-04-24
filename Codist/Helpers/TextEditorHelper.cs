@@ -403,7 +403,7 @@ static class TextEditorHelper
 		var target = before ? tSpan.Start : tSpan.End;
 		var sPath = sourceNode.SyntaxTree.FilePath;
 		var tPath = targetNode.SyntaxTree.FilePath;
-		if (String.Equals(sPath, tPath, StringComparison.OrdinalIgnoreCase)) {
+		if (FileHelper.AreFileNamesEqual(sPath, tPath)) {
 			using var edit = view.TextBuffer.CreateEdit();
 			edit.Insert(target, view.TextSnapshot.GetText(sSpan));
 			if (copy == false) {
@@ -414,7 +414,7 @@ static class TextEditorHelper
 				view.SelectSpan(sSpan.Start > tSpan.Start ? target : target - sSpan.Length, sSpan.Length, -1);
 			}
 		}
-		else if (String.Equals(sPath, view.TextBuffer.GetTextDocument()?.FilePath, StringComparison.OrdinalIgnoreCase)) {
+		else if (FileHelper.AreFileNamesEqual(sPath, view.TextBuffer.GetTextDocument()?.FilePath)) {
 			// drag & drop from current file to external file
 			if (copy == false) {
 				using var edit = view.TextBuffer.CreateEdit();
@@ -588,7 +588,7 @@ static class TextEditorHelper
 	public static void OpenFile(string file, int caretPosition) {
 		var view = GetActiveWpfDocumentView();
 		if (view != null
-			&& String.Equals(view.TextBuffer.GetTextDocument()?.FilePath, file, StringComparison.OrdinalIgnoreCase)) {
+			&& FileHelper.AreFileNamesEqual(view.TextBuffer.GetTextDocument()?.FilePath, file)) {
 			MoveToActiveViewPosition(view, caretPosition);
 		}
 		else {

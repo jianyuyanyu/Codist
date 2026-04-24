@@ -159,7 +159,7 @@ namespace Codist
 			var projItems = project.ProjectItems;
 			for (int i = projItems.Count; i > 0; i--) {
 				var item = projItems.Item(i);
-				if (item.Name.EndsWith(".vsixmanifest", StringComparison.OrdinalIgnoreCase)) {
+				if (FileHelper.HasExtension(item.Name, "vsixmanifest")) {
 					if (item.IsOpen && item.IsDirty) {
 						item.Document.NewWindow().Activate();
 						MessageWindow.Error($"{item.Name} is open and modified. Auto increment VSIX version number failed. Please save the file first.");

@@ -229,7 +229,7 @@ public sealed partial class CSharpBar
 			var current = node.SyntaxTree;
 			int c = 1;
 			foreach (var item in symbol.DeclaringSyntaxReferences) {
-				if (item.SyntaxTree == current || String.Equals(item.SyntaxTree.FilePath, current.FilePath, StringComparison.OrdinalIgnoreCase)) {
+				if (item.SyntaxTree == current || FileHelper.AreFileNamesEqual(item.SyntaxTree.FilePath, current.FilePath)) {
 					continue;
 				}
 				await AddExternalNodesAsync(item, null, true, cancellationToken);

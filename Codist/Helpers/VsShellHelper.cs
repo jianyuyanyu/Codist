@@ -8,8 +8,8 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Codist
-{
+namespace Codist;
+
 	static class VsShellHelper
 	{
 		public const string CSharpProjectKind = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}",
@@ -134,7 +134,7 @@ namespace Codist
 						return project;
 					}
 				}
-				else if (String.Equals(project.FullName, projectPath, StringComparison.OrdinalIgnoreCase)) {
+			else if (FileHelper.AreFileNamesEqual(project.FullName, projectPath)) {
 					return project;
 				}
 			}
@@ -144,7 +144,7 @@ namespace Codist
 				for (int i = 1; i <= items.Count; i++) {
 					var item = items.Item(i);
 					if (item.Object is EnvDTE.Project p
-						&& String.Equals(p.FullName, pp, StringComparison.OrdinalIgnoreCase)) {
+					&& FileHelper.AreFileNamesEqual(p.FullName, pp)) {
 						return p;
 					}
 				}
@@ -169,7 +169,7 @@ namespace Codist
 				bool match = false;
 				for (int i = 1; i <= count; i++) {
 					p = items.Item(i);
-					if (String.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)) {
+				if (FileHelper.AreFileNamesEqual(p.Name, name)) {
 						items = p.ProjectItems;
 						count = items.Count;
 						match = true;
@@ -232,4 +232,3 @@ namespace Codist
 			}
 		}
 	}
-}

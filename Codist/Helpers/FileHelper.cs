@@ -7,6 +7,8 @@ namespace Codist
 {
 	static class FileHelper
 	{
+		static readonly char[] __InvalidFileNameChars = Path.GetInvalidFileNameChars();
+
 		public static (string folder, string file) DeconstructPath(string path, bool removeTrailingDirSeparator = false) {
 			if (path == null) {
 				return default;
@@ -58,6 +60,30 @@ namespace Codist
 				Controls.MessageWindow.Error(ex, R.T_ErrorOpeningFile);
 			}
 			OpenPathInExplorer(folder, file);
+		}
+
+		public static bool AreFileNamesEqual(string file1, string file2) {
+			return String.Equals(file1, file2, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public static bool ContainsInvalidFileNameCharacter(string path) {
+			return path.IndexOfAny(__InvalidFileNameChars) >= 0;
+		}
+
+		public static bool HasExtension(string filePath, string extensionWithoutDot) {
+			int p;
+			return (p = filePath.Length - extensionWithoutDot.Length) > 0
+				&& filePath[p - 1] == '.'
+				&& filePath.IndexOf(extensionWithoutDot) == p;
+		}
+
+		public static bool HasAnyExtension(string filePath, params string[] extensionsWithoutDot) {
+			foreach (var item in extensionsWithoutDot) {
+				if (HasExtension(filePath, item)) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		static void OpenPathInExplorer(string folder, string path) {
