@@ -3151,7 +3151,7 @@ namespace Codist.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to Synchronize with Active File
-        ///Press down this button to make list synchronized with active code file.
+        ///Press down this button to keep list synchronizing with active code file.
         /// </summary>
         internal static string CMDT_SyncActiveFile {
             get {

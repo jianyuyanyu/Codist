@@ -309,18 +309,18 @@ sealed class FileList : VirtualList
 		if (String.IsNullOrEmpty(directory)) {
 			return;
 		}
-		NavigateToDirectoryAsync(directory).FireAndForget();
+		UnsafeNavigateToDirectoryAsync(directory).FireAndForget();
 	}
 
 	void GoToSolutionFolder(object sender, RoutedEventArgs args) {
 		if (!String.IsNullOrEmpty(_SolutionFolderPath)) {
-			NavigateToDirectoryAsync(_SolutionFolderPath).FireAndForget();
+			UnsafeNavigateToDirectoryAsync(_SolutionFolderPath).FireAndForget();
 		}
 	}
 
 	void GoToProjectFolder(object sender, RoutedEventArgs args) {
 		if (!String.IsNullOrEmpty(_ProjectFolderPath)) {
-			NavigateToDirectoryAsync(_ProjectFolderPath).FireAndForget();
+			UnsafeNavigateToDirectoryAsync(_ProjectFolderPath).FireAndForget();
 		}
 	}
 
@@ -435,7 +435,7 @@ sealed class FileList : VirtualList
 			_GoToProjectFolderButton.Visibility = Visibility.Collapsed;
 			return;
 		}
-		UpdateProjectStatus(ServicesHelper.Instance.DTE.Solution.FindProjectItem(value)?.ContainingProject);
+		UpdateProjectStatus(ServicesHelper.Instance.DTE.ActiveDocument?.ProjectItem?.ContainingProject);
 	}
 
 	void UpdateProjectStatus(EnvDTE.Project project) {
@@ -489,13 +489,19 @@ sealed class FileList : VirtualList
 					break;
 				case FileItemType.Folder:
 				case FileItemType.EmptyFolder:
-					NavigateToDirectoryAsync(item.FullPath).FireAndForget();
+					UnsafeNavigateToDirectoryAsync(item.FullPath).FireAndForget();
 					break;
 			}
 		}
 	}
 
-	async Task NavigateToDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default) {
+	public Task NavigateToDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default) {
+		return Directory.Exists(directoryPath)
+			? UnsafeNavigateToDirectoryAsync(directoryPath, cancellationToken)
+			: Task.CompletedTask;
+	}
+
+	async Task UnsafeNavigateToDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default) {
 		SetCurrentDir(directoryPath);
 
 		await LoadDirectoryAsync(_ActiveDirPath, cancellationToken);
@@ -544,13 +550,13 @@ sealed class FileList : VirtualList
 	public Task LoadSolutionDirectoryAsync(CancellationToken cancellationToken = default) {
 		return String.IsNullOrEmpty(_SolutionFolderPath)
 			? Task.CompletedTask
-			: NavigateToDirectoryAsync(_SolutionFolderPath, cancellationToken);
+			: UnsafeNavigateToDirectoryAsync(_SolutionFolderPath, cancellationToken);
 	}
 
 	public Task LoadCurrentProjectDirectoryAsync(CancellationToken cancellationToken = default) {
 		return String.IsNullOrEmpty(_ProjectFolderPath)
 			? Task.CompletedTask
-			: NavigateToDirectoryAsync(_ProjectFolderPath, cancellationToken);
+			: UnsafeNavigateToDirectoryAsync(_ProjectFolderPath, cancellationToken);
 	}
 
 	static void ToggleFolderButton(ThemedButton folderButton, string folderPath, string directory) {
@@ -694,7 +700,7 @@ sealed class FileList : VirtualList
 		var link = (Hyperlink)s;
 		((TextBlock)link.Parent)
 			.FindAncestor<FileList>()
-			?.NavigateToDirectoryAsync(((PathSegment)link.CommandParameter).Text)
+			?.UnsafeNavigateToDirectoryAsync(((PathSegment)link.CommandParameter).Text)
 			.FireAndForget();
 	}
 

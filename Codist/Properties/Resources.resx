@@ -3271,7 +3271,7 @@ To multi-select items without entering this mode, press Ctrl or Shift key when c
   </data>
   <data name="CMDT_SyncActiveFile" xml:space="preserve">
     <value>Synchronize with Active File
-Press down this button to make list synchronized with active code file</value>
+Press down this button to keep list synchronizing with active code file</value>
   </data>
   <data name="T_ConfirmLoadSolutionNote" xml:space="preserve">
     <value>Are you sure to load solution &lt;FILE&gt;?

@@ -18,7 +18,7 @@ public class FileExplorerWindow : ToolWindowPane
 	internal static readonly Guid WindowGuid = new(WindowGuidString);
 
 	FileList _FileList;
-	bool _SolutionJustLoaded;
+	bool _SolutionJustLoaded, _SolutionChanged;
 
 	CancellationTokenSource _CancellationTokenSource = new();
 
@@ -34,27 +34,43 @@ public class FileExplorerWindow : ToolWindowPane
 		if (!(bool)e.NewValue) {
 			SolutionEvents.OnAfterOpenSolution -= HandleAfterOpenSolution;
 			SolutionEvents.OnAfterCloseSolution -= HandleAfterCloseSolution;
+			SolutionEvents.OnAfterOpenSolution += HandleSolutionChange;
+			SolutionEvents.OnAfterCloseSolution += HandleSolutionChange;
 			SolutionEvents.OnAfterLoadProjectBatch -= HandleAfterLoadProjects;
 			TextEditorHelper.ActiveTextViewChanged -= HandleActiveTextViewChanged;
 			TextEditorHelper.AllTextViewClosed -= HandleAllTextViewClosed;
 			return;
 		}
 
+		SolutionEvents.OnAfterOpenSolution -= HandleSolutionChange;
+		SolutionEvents.OnAfterCloseSolution -= HandleSolutionChange;
 		SolutionEvents.OnAfterOpenSolution += HandleAfterOpenSolution;
 		SolutionEvents.OnAfterCloseSolution += HandleAfterCloseSolution;
 		SolutionEvents.OnAfterLoadProjectBatch += HandleAfterLoadProjects;
 		TextEditorHelper.ActiveTextViewChanged += HandleActiveTextViewChanged;
 		TextEditorHelper.AllTextViewClosed += HandleAllTextViewClosed;
+
 		var currentFile = ServicesHelper.Instance.DTE.ActiveDocument?.FullName
 			?? ServicesHelper.Instance.DTE.Solution.FullName;
-		if (!FileHelper.AreFileNamesEqual(currentFile, _FileList.CurrentFile)) {
+		if (!FileHelper.AreFileNamesEqual(currentFile, _FileList.CurrentFile)
+			&& !String.IsNullOrEmpty(currentFile)) {
 			_FileList.CurrentFile = currentFile;
+			RefreshSolutionIfChanged();
 			_FileList.LoadCurrentDirectoryAsync(_CancellationTokenSource.Token).FireAndForget();
+		}
+		else {
+			_FileList.CurrentFile = null;
+			RefreshSolutionIfChanged();
+			_FileList.NavigateToDirectoryAsync(VsShellHelper.GetDefaultProjectLocation(), _CancellationTokenSource.Token).FireAndForget();
 		}
 	}
 
 	void HandleAllTextViewClosed(object sender, EventArgs e) {
 		_FileList.ClearCurrentFileAsync(SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
+	}
+
+	void HandleSolutionChange(object sender, EventArgs e) {
+		_SolutionChanged = true;
 	}
 
 	void HandleAfterOpenSolution(object sender, EventArgs e) {
@@ -75,6 +91,13 @@ public class FileExplorerWindow : ToolWindowPane
 		}
 		_FileList.RefreshCurrentFileAsync(_SolutionJustLoaded, SyncHelper.CancelAndRetainToken(ref _CancellationTokenSource)).FireAndForget();
 		_SolutionJustLoaded = false;
+	}
+
+	void RefreshSolutionIfChanged() {
+		if (_SolutionChanged) {
+			_SolutionChanged = false;
+			_FileList.RefreshSolutionAsync(_CancellationTokenSource.Token).FireAndForget();
+		}
 	}
 
 	protected override void Dispose(bool disposing) {
