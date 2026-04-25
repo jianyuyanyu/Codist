@@ -379,8 +379,10 @@ static class IconIds
 	public const int ScriptFile = KnownImageIds.Script;
 	public const int WebFile = KnownImageIds.WebFile;
 	public const int WorkerServiceFile = KnownImageIds.WorkerServiceFile;
+	public const int ResxFile = KnownImageIds.SourceFileGroup;
 	public const int WPFFile = KnownImageIds.WPFFile;
 	public const int XMLFile = KnownImageIds.XMLFile;
+	public const int XMLSchemaFile = KnownImageIds.XMLSchema;
 	public const int XMLDTDFile = KnownImageIds.XMLDocumentTypeDefinitionFile;
 	public const int VisualStudioFile = KnownImageIds.VisualStudioSettingsFile;
 	public const int BinaryFile = KnownImageIds.BinaryFile;

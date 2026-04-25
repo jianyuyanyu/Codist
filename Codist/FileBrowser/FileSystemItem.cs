@@ -141,7 +141,9 @@ sealed class FileSystemItem : INotifyPropertyChanged
 
 			#region Data & Configuration Files
 			".json" or ".yaml" or ".yml" or ".targets" => IconIds.SettingsFile,
-			".xml" or ".resx" or ".xsd" or ".xsl" or ".xslt" => IconIds.XMLFile,
+			".xml" or ".xsl" or ".xslt" => IconIds.XMLFile,
+			".xsd" => IconIds.XMLSchemaFile,
+			".resx" => IconIds.ResxFile,
 			".config" or ".conf" or ".ini" or ".props" => IconIds.ConfigurationFile,
 			".dtd" => IconIds.XMLDTDFile,
 			".md" or ".markdown" => IconIds.MarkdownFile,
