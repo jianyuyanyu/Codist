@@ -42,7 +42,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 		FileItemType.Folder => IconIds.Folder,
 		FileItemType.EmptyFolder => IconIds.EmptyFolder,
 		FileItemType.InaccessibleFolder => IconIds.InaccessibleFolder,
-		_ => GetFileIconId(Path.GetExtension(_Name))
+		_ => VsImageHelper.GetImageIdForFile(_Name)
 	});
 
 	public long FileSize {
@@ -112,96 +112,7 @@ sealed class FileSystemItem : INotifyPropertyChanged
 		(_Info, _Type, _Name) = (dirInfo, type, dirInfo.Name);
 	}
 	public FileSystemItem(DirectoryInfo dirInfo, string alias) {
-		(_Info, _Type, _Name, _Icon) = (dirInfo, FileItemType.Folder, Path.GetFileNameWithoutExtension(alias), VsImageHelper.GetImage(GetFileIconId(Path.GetExtension(alias))));
-	}
-
-	public static int GetFileIconId(string extName) {
-		return extName?.ToLowerInvariant() switch {
-			#region Source Code Files
-			".cs" => IconIds.CSFileNode,
-			".vb" => IconIds.VBFileNode,
-			".cpp" or ".cc" or ".cxx" or ".cp" => IconIds.CPPFileNode,
-			".h" or ".hpp" or ".hxx" or ".hh" => IconIds.CPPHeaderFile,
-			".c" => IconIds.CFile,
-			".fs" or ".fsi" or ".fsx" => IconIds.FSFileNode,
-			".py" or ".pyw" => IconIds.PYFileNode,
-			".ts" or ".tsx" => IconIds.TSFileNode,
-			".js" => IconIds.JSFile,
-			".jsx" => IconIds.JSXFile,
-			".php" => IconIds.PHPFile,
-			".asm" or ".s" => IconIds.ASMFile,
-			#endregion
-
-			#region Web & UI Files
-			".html" or ".htm" or ".xhtml" => IconIds.HTMLFile,
-			".css" or ".scss" or ".less" => IconIds.CSS,
-			".xaml" => IconIds.WPFFile,
-			".razor" or ".aspx" or ".ashx" or ".asmx" or ".svc" => IconIds.WebFile,
-			#endregion
-
-			#region Data & Configuration Files
-			".json" or ".yaml" or ".yml" or ".targets" => IconIds.SettingsFile,
-			".xml" or ".xsl" or ".xslt" => IconIds.XMLFile,
-			".xsd" => IconIds.XMLSchemaFile,
-			".resx" => IconIds.ResxFile,
-			".config" or ".conf" or ".ini" or ".props" => IconIds.ConfigurationFile,
-			".dtd" => IconIds.XMLDTDFile,
-			".md" or ".markdown" => IconIds.MarkdownFile,
-			".txt" or ".log" => IconIds.TextFile,
-			".db" or ".sqlite" or ".mdf" or ".ldf" => IconIds.DatabaseFile,
-			#endregion
-
-			#region Project & Solution Files
-			".csproj" => IconIds.CSProjectNode,
-			".vbproj" => IconIds.VBProjectNode,
-			".fsproj" => IconIds.FSProjectNode,
-			".vcxproj" or ".vcproj" => IconIds.CPPProjectNode,
-			".pyproj" => IconIds.PYProjectNode,
-			".tsproj" or ".esproj" or ".njsproj" => IconIds.TSProjectNode,
-			".sln" or ".slnx" => IconIds.VisualStudioFile,
-			#endregion
-
-			#region Image & Resource Files
-			".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".webp" or ".svg" => IconIds.ImageFile,
-			".ico" => IconIds.IconFile,
-			".cur" or ".ani" => IconIds.CursorFile,
-			".tif" or ".tiff" => IconIds.TifFile,
-			#endregion
-
-			#region Build Artifacts & Binary Files
-			".dll" or ".sys" or ".bin" or ".dat" => IconIds.BinaryFile,
-			".exe" or ".com" => IconIds.ExecutableFile,
-			".cmd" or ".bat" or ".wsf" or ".ps" or ".ps1" or ".bash" or ".sh" or ".zsh" or ".ksh" => IconIds.ConsoleFile,
-			".tmp" or ".temp" or ".obj" => IconIds.IntermediateFile,
-			".pdb" => IconIds.PDBFile,
-			".dmp" => IconIds.CrashDumpFile,
-			#endregion
-
-			#region Office Files
-			".doc" or ".docx" or ".rtf" => IconIds.WordFile,
-			".xls" or ".xlsx" or ".xlsm" or ".csv" => IconIds.ExcelFile,
-			".ppt" or ".pptx" => IconIds.PowerPointFile,
-			".accdb" or ".mdb" => IconIds.AccessFile,
-			".msg" or ".pst" or ".ost" => IconIds.OutlookFile,
-			".vsdx" or ".vsd" => IconIds.VisioFile,
-			".mpp" => IconIds.ProjectFile,
-			#endregion
-
-			#region Miscellaneous Files
-			".jar" => IconIds.JARFile,
-			".zip" or ".rar" or ".7z" or ".cab" or ".gz" or ".tar" => IconIds.CompressedFile,
-			".pfx" or ".snk" or ".cer" => IconIds.SignatureFile,
-			".manifest" => IconIds.ManifestFile,
-			".suo" or ".user" or ".vssettings" or ".vsct" or ".vsixmanifest" or ".vsixlangpack" => IconIds.VisualStudioFile,
-			".lnk" => IconIds.SymlinkFile,
-			".chm" or ".hlp" => IconIds.CompiledHelpFile,
-			".pdf" or ".epub" or ".mobi" or ".djvu" => IconIds.EBookFile,
-			".mp4" or ".avi" or ".wmv" or ".flv" or ".mts" or ".mpg" or ".mpeg" or ".wav" or ".mp3" or ".ogg" or ".flac" or ".ape" or ".m4a" or ".aac" or ".m3u" or ".m3u8" or ".cue" => IconIds.MediaFile,
-			".bak" => IconIds.BackupFile,
-			#endregion
-
-			_ => IconIds.OtherFile
-		};
+		(_Info, _Type, _Name, _Icon) = (dirInfo, FileItemType.Folder, Path.GetFileNameWithoutExtension(alias), VsImageHelper.GetImageForFile(alias));
 	}
 
 	[SuppressMessage("Usage", Suppression.VSTHRD010, Justification = Suppression.CheckedInCaller)]

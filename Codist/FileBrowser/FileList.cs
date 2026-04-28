@@ -448,7 +448,7 @@ sealed class FileList : VirtualList
 		}
 
 		_ProjectFolderPath = projectPath;
-		var icon = FileSystemItem.GetFileIconId(Path.GetExtension(projectPath));
+		var icon = VsImageHelper.GetImageIdForFile(projectPath);
 		if (icon == IconIds.OtherFile) {
 			icon = IconIds.GoToProjectFolder;
 		}

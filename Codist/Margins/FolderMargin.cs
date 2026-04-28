@@ -64,7 +64,7 @@ sealed partial class FolderMargin : IWpfTextViewMargin
 		if (project?.IsMiscOrProjectFolder() != false) {
 			return;
 		}
-		_ProjectButton = new ThemedToggleButton(FileSystemItem.GetFileIconId(System.IO.Path.GetExtension(project.UniqueName)), R.CMD_GoToProjectFolder, OnProjectClick) {
+		_ProjectButton = new ThemedToggleButton(VsImageHelper.GetImageIdForFile(project.UniqueName), R.CMD_GoToProjectFolder, OnProjectClick) {
 			BorderThickness = WpfHelper.NoMargin,
 			Background = Brushes.Transparent,
 			Padding = WpfHelper.TinyMargin,
