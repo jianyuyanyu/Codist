@@ -645,11 +645,12 @@ partial class CodeAnalysisHelper
 				}
 				break;
 		}
+		var locationDedup = new HashSet<Location>(Comparers.SourceLocationComparer);
 		foreach (var sr in await SymbolFinder.FindReferencesAsync(symbol, project.Solution, documents is null ? null : ImmutableHashSet.CreateRange(documents), cancellationToken).ConfigureAwait(false)) {
 			if (definitionFilter?.Invoke(sr.Definition) == false) {
 				continue;
 			}
-			await GroupReferenceByContainerAsync(d, sr, null, nodeFilter, nsFilter, occurrenceFilter, usageFilter, cancellationToken).ConfigureAwait(false);
+			await GroupReferenceByContainerAsync(d, sr, null, locationDedup, nodeFilter, nsFilter, occurrenceFilter, usageFilter, cancellationToken).ConfigureAwait(false);
 		}
 		if (d.Count == 0) {
 			return null;
@@ -688,7 +689,7 @@ partial class CodeAnalysisHelper
 		}
 	}
 
-	static async Task GroupReferenceByContainerAsync(Dictionary<ISymbol, List<(SymbolUsageKind usage, ReferenceLocation loc)>> results, ReferencedSymbol reference, string symbolSignature, Predicate<SyntaxNode> nodeFilter = null, SymbolNamespaceFilter nsFilter = default, Predicate<ISymbol> occurrenceFilter = null, Predicate<SymbolUsageKind> usageFilter = null, CancellationToken cancellationToken = default) {
+	static async Task GroupReferenceByContainerAsync(Dictionary<ISymbol, List<(SymbolUsageKind usage, ReferenceLocation loc)>> results, ReferencedSymbol reference, string symbolSignature, HashSet<Location> locationDedup, Predicate<SyntaxNode> nodeFilter = null, SymbolNamespaceFilter nsFilter = default, Predicate<ISymbol> occurrenceFilter = null, Predicate<SymbolUsageKind> usageFilter = null, CancellationToken cancellationToken = default) {
 		var pu = GetPotentialUsageKinds(reference.Definition);
 		foreach (var docRefs in reference.Locations.GroupBy(l => l.Document)) {
 			var sm = await docRefs.Key.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
@@ -738,18 +739,11 @@ partial class CodeAnalysisHelper
 					}
 				}
 				var u = GetUsageKind(pu, n);
-				if (usageFilter != null && !usageFilter(u)) {
+				if (usageFilter != null && !usageFilter(u)
+					|| !locationDedup.Add(location.Location)) {
 					continue;
 				}
 				if (results.TryGetValue(s, out var l)) {
-					var sf = location.Location.SourceTree.FilePath;
-					foreach (var (usage, loc) in l) {
-						if (usage == u
-							&& loc.Location.SourceSpan == ss
-							&& loc.Location.SourceTree.FilePath == sf) {
-							goto NEXT;
-						}
-					}
 					l.Add((u, location));
 				}
 				else {
@@ -1038,7 +1032,7 @@ partial class CodeAnalysisHelper
 	{
 		internal static readonly GenericEqualityComparer<SymbolCallerInfo> SymbolCallerInfoComparer = new GenericEqualityComparer<SymbolCallerInfo>((x, y) => x.CallingSymbol == y.CallingSymbol, o => o.CallingSymbol.GetHashCode());
 
-		internal static readonly GenericEqualityComparer<Location> SourceLocationComparer = new GenericEqualityComparer<Location>((x, y) => x.SourceTree == y.SourceTree && x.SourceSpan == y.SourceSpan, o => (o.SourceTree?.GetHashCode() ?? 0) ^ (o.SourceSpan.GetHashCode() << 8));
+		internal static readonly GenericEqualityComparer<Location> SourceLocationComparer = new GenericEqualityComparer<Location>((x, y) => (x.SourceTree == y.SourceTree || x.SourceTree.FilePath == y.SourceTree.FilePath) && x.SourceSpan == y.SourceSpan, o => o.SourceSpan.GetHashCode() << 8);
 	}
 
 	sealed class ArgumentListContainer
