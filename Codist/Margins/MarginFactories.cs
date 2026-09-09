@@ -155,7 +155,7 @@ sealed class MatchSelectionMarginFactory : IWpfTextViewMarginProvider
 [TextViewRole(PredefinedTextViewRoles.Document)]
 internal sealed class FolderBrowserMarginProvider : IWpfTextViewMarginProvider
 {
-	static readonly string[] __ExcludeRoles = ["LEFTDIFF", "RIGHTDIFF"];
+	static readonly string[] __ExcludeRoles = ["LEFTDIFF", "RIGHTDIFF", "STRINGVISUALIZERTEXTVIEWROLE"];
 
 	public IWpfTextViewMargin CreateMargin(IWpfTextViewHost wpfTextViewHost, IWpfTextViewMargin marginContainer) {
 		IWpfTextView view;
