@@ -95,6 +95,9 @@ namespace Codist.QuickInfo
 						|| i is ExpressionSyntax
 							&& i.IsKind(SyntaxKind.IdentifierName) == false);
 			}
+			else if (node is AnonymousMethodExpressionSyntax am) {
+				ss = am.Block ?? am.Body;
+			}
 			else if ((symbol as IMethodSymbol)?.MethodKind == MethodKind.LocalFunction) {
 				ss = symbol.GetSyntaxNode(cancellationToken);
 			}

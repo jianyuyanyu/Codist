@@ -217,6 +217,7 @@ namespace Codist.Taggers
 				{ SyntaxKind.ImplicitKeyword, TagTypeCastDeclaration },
 				{ CodeAnalysisHelper.RecordKeyword, TagRecordDeclaration },
 				{ CodeAnalysisHelper.ExtensionKeyword, TagExtensionDeclaration },
+				{ SyntaxKind.DelegateKeyword, TagDelegateCapture },
 				{ SyntaxKind.BreakKeyword, TagBreakKeyword },
 				{ SyntaxKind.AwaitKeyword, TagAwaitKeyword },
 				{ SyntaxKind.GotoKeyword, TagControlFlowKeyword },
@@ -364,25 +365,26 @@ namespace Codist.Taggers
 				var node = token.Parent;
 				var kind = node.Kind();
 				ClassificationTag tag;
-				if (kind == SyntaxKind.ArrowExpressionClause) {
-					tag = ClassifySemanticPunctuation(node.Parent);
-				}
-				else if (kind == SyntaxKind.SimpleLambdaExpression || kind == SyntaxKind.ParenthesizedLambdaExpression) {
-					if (HighlightOptions.CapturingLambda && node is LambdaExpressionSyntax
-						&& node.AncestorsAndSelf()
-							.FirstOrDefault(i => i is StatementSyntax || i is ExpressionSyntax && i.IsKind(SyntaxKind.IdentifierName) == false)
-							?.HasCapturedVariable(ctx.semanticModel) == true) {
-						tag = __Classifications.VariableCapturedExpression;
-					}
-					else {
-						tag = null;
-					}
-				}
-				else if (kind == CodeAnalysisHelper.SwitchExpressionArm) {
-					tag = __GeneralClassifications.BranchingKeyword;
-				}
-				else {
-					return;
+				switch (kind) {
+					case SyntaxKind.ArrowExpressionClause:
+						tag = ClassifySemanticPunctuation(node.Parent);
+						break;
+					case SyntaxKind.SimpleLambdaExpression:
+					case SyntaxKind.ParenthesizedLambdaExpression:
+						if (HighlightOptions.CapturingLambda && node is LambdaExpressionSyntax
+								&& node.AncestorsAndSelf()
+									.FirstOrDefault(i => i is StatementSyntax || i is ExpressionSyntax && i.IsKind(SyntaxKind.IdentifierName) == false)
+									?.HasCapturedVariable(ctx.semanticModel) == true) {
+							tag = __Classifications.VariableCapturedExpression;
+						}
+						else {
+							tag = null;
+						}
+						break;
+					case CodeAnalysisHelper.SwitchExpressionArm:
+						tag = __GeneralClassifications.BranchingKeyword;
+						break;
+					default: return;
 				}
 				if (tag != null) {
 					ctx.Tags.Add(token.Span,
@@ -842,6 +844,13 @@ namespace Codist.Taggers
 			static void TagThisKeyword(in SyntaxToken token, Context ctx) {
 				if (token.Parent.Kind().IsDeclaration()) {
 					ctx.Tags.Add(token, __Classifications.Declaration);
+				}
+			}
+
+			static void TagDelegateCapture(in SyntaxToken token, Context ctx) {
+				if (token.Parent.IsKind(SyntaxKind.AnonymousMethodExpression)
+					&& token.Parent.HasCapturedVariable(ctx.semanticModel)) {
+					ctx.Tags.Add(token, __Classifications.VariableCapturedExpression);
 				}
 			}
 			#endregion
