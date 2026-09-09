@@ -160,6 +160,7 @@ partial class FileList
 
 		try {
 			if (parents.Count != 0) {
+				dte.Windows.Item(EnvDTE.Constants.vsWindowKindSolutionExplorer)?.Visible = true;
 				var item = dte.ToolWindows.SolutionExplorer.GetItem(parents.Pop());
 				while (parents.Count != 0) {
 					var items = item.UIHierarchyItems;
