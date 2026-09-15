@@ -36,7 +36,7 @@ internal partial class SmartBar : IOleCommandTarget
 	DateTime _LastExecute;
 	DateTime _LastShiftHit;
 	int _SelectionStatus;
-	bool _CtrlSuppression;
+	bool _CtrlSuppression, _HookKeyUpCancelCreation;
 	IOleCommandTarget _NextCommandTarget;
 	IVsTextView _VsView;
 
@@ -175,17 +175,32 @@ internal partial class SmartBar : IOleCommandTarget
 			|| _CtrlSuppression && UIHelper.IsCtrlDown)
 			&& cancellationToken.IsCancellationRequested == false) {
 			// postpone the even handler until the left mouse button and keyboard modifiers are released
+			if (!_HookKeyUpCancelCreation) {
+				_View?.VisualElement.PreviewKeyUp += HandleKeyUpWhenCtrlDownAndSelecting;
+				_HookKeyUpCancelCreation = true;
+			}
 			await Task.Delay(100, cancellationToken);
 		}
 		var view = _View;
-		if (view is null
-			|| view.Selection.IsEmpty
+		if (view?.Selection.IsEmpty != false
 			|| Interlocked.Exchange(ref _SelectionStatus, Working) != Selecting) {
 			goto EXIT;
 		}
 		await InternalCreateToolBarAsync(cancellationToken);
 		EXIT:
+		if (_HookKeyUpCancelCreation) {
+			_View?.VisualElement.PreviewKeyUp -= HandleKeyUpWhenCtrlDownAndSelecting;
+			_HookKeyUpCancelCreation = false;
+		}
 		_SelectionStatus = 0;
+	}
+
+	void HandleKeyUpWhenCtrlDownAndSelecting(object sender, KeyEventArgs e) {
+		if (e.Key != Key.None) {
+			_SelectionStatus = 0;
+			_HookKeyUpCancelCreation = false;
+			_View?.VisualElement.PreviewKeyUp -= HandleKeyUpWhenCtrlDownAndSelecting;
+		}
 	}
 
 	async Task InternalCreateToolBarAsync(CancellationToken cancellationToken = default) {
@@ -438,6 +453,7 @@ internal partial class SmartBar : IOleCommandTarget
 			view.Selection.SelectionChanged -= ViewSelectionChanged;
 			view.VisualElement.MouseMove -= ViewMouseMove;
 			view.VisualElement.PreviewKeyUp -= ViewKeyUp;
+			view.VisualElement.PreviewKeyUp -= HandleKeyUpWhenCtrlDownAndSelecting;
 			view.Closed -= ViewClosed;
 			if (_VsView != null) {
 				_VsView.RemoveCommandFilter(this);
